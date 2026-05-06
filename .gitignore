@@ -1,0 +1,75 @@
+# Large data files
+*.tar.gz
+*.tar
+*.zip
+*.h5ad
+*.h5
+*.hdf5
+*.gctx
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Pickle files (data)
+*.pkl
+*.pickle
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wandb/
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# Numpy archives (signature caches, embedding caches)
+*.npz
+
+# Per-arm large outputs
+*/data/raw/
+*/data/processed/
+*/data/splits/
+*/trained_models/
+*/results/figures/*.png
+*/results/figures/*.pdf
+
+# Allow tracked .gitkeep markers and the manifest tables
+!*/data/raw/.gitkeep
+!*/data/processed/.gitkeep
+!*/data/splits/.gitkeep
+!*/results/tables/
+
+# DILIst raw downloads (large, license-restricted distribution)
+*/data/raw/DILIst/*.xlsx
+*/data/raw/DILIrank/*.xlsx
