@@ -32,8 +32,8 @@ This manifest is the **single source of truth for what data, code, and weights a
 
 | File | Path | SHA256 | Source | Notes |
 |---|---|---|---|---|
-| DILIst | `data/raw/DILIst/dilist.xlsx` | _filled in Phase 1 by `scripts/download_dilist.py`_ | FDA NCTR LTKB | Latest available release |
-| DILIrank (if separate) | `data/raw/DILIrank/dilirank.xlsx` | _filled in Phase 1 if DILIst lacks severity_ | FDA NCTR LTKB | Optional: only if DILIst severity columns are missing |
+| DILIst | `data/raw/DILIst/dilist.xlsx` | `4331ee9d16ae7641488161e4dc2c603c29e06baa8667dd16e7f3d635366e7e5e` | FDA NCTR LTKB ([landing](https://www.fda.gov/science-research/liver-toxicity-knowledge-base-ltkb/drug-induced-liver-injury-severity-and-toxicity-dilist-dataset), [direct](https://www.fda.gov/media/160597/download?attachment)) | "DILIst Supplementary Table" — 1,279 drugs × 4 cols (`DILIST_ID`, `CompoundName`, `DILIst Classification` [1/0 binary], `Routs of Administration`). **No severity columns in this release** — use DILIrank 2.0 below for M10 stratification. Downloaded 2026-05-05. |
+| DILIrank 2.0 | `data/raw/DILIrank/dilirank.xlsx` | `1ca1352ff727af68e68e250eae2ed775bca8492335140ac0afd2233248694993` | FDA NCTR LTKB ([landing](https://www.fda.gov/science-research/liver-toxicity-knowledge-base-ltkb/drug-induced-liver-injury-rank-dilirank-20-dataset), [direct](https://www.fda.gov/media/113052/download?attachment)) | 1,337 drugs × 6 cols across two sheets (`version 2`, `version 1`). **Header is on row index 1**, not 0 — load with `pd.read_excel(..., sheet_name='version 2', header=1)`. Severity columns: `SeverityClass` (numeric), `vDILI-Concern` (text 4-class: `vMOST-DILI-concern`, `vLESS-DILI-concern`, `vNo-DILI-concern`, `vAmbiguous-DILI-concern`). Downloaded 2026-05-05. |
 
 ### Processed (Phase 1+)
 

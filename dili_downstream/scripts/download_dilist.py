@@ -28,14 +28,27 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "raw" / "DILIst"
 
-# Known FDA NCTR DILIst URL candidates (will be tried in order).
-# NOTE: FDA URLs change periodically. If all candidates fail, the script exits
-# with a clear instruction for manual download. Update this list when new
-# canonical URLs are confirmed.
+# Known FDA NCTR DILIst URL candidates (verified working 2026-05-05).
+# When all candidates 404, scrape these canonical landing pages for new media IDs:
+#   DILIst:  https://www.fda.gov/science-research/liver-toxicity-knowledge-base-ltkb/drug-induced-liver-injury-severity-and-toxicity-dilist-dataset
+#   DILIrank: https://www.fda.gov/science-research/liver-toxicity-knowledge-base-ltkb/drug-induced-liver-injury-rank-dilirank-20-dataset
 CANDIDATE_URLS: list[str] = [
-    "https://www.fda.gov/files/science%20&%20research/published/DILIst-FDA-Approved-Drugs.xlsx",
-    "https://www.fda.gov/files/DILIst.xlsx",
+    "https://www.fda.gov/media/160597/download?attachment",
 ]
+
+# Sibling DILIrank 2.0 download — explicit 4-class severity source for M10
+# (DILI severity stratification). Fetched after DILIst regardless of whether
+# DILIst's Supplementary Table includes severity columns.
+DILIRANK_URLS: list[str] = [
+    "https://www.fda.gov/media/113052/download?attachment",
+]
+
+# A realistic User-Agent reduces the chance of being rate-limited or served a
+# CAPTCHA page by FDA's CDN.
+DEFAULT_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -54,10 +67,11 @@ def attempt_download(urls: Iterable[str], output_path: Path) -> tuple[bool, str 
         print("requests is not installed. Activate dili_v04_env first.", file=sys.stderr)
         return False, None
 
+    headers = {"User-Agent": DEFAULT_UA}
     for url in urls:
         print(f"→ Trying {url}", file=sys.stderr)
         try:
-            with requests.get(url, stream=True, timeout=60) as resp:
+            with requests.get(url, stream=True, timeout=60, headers=headers, allow_redirects=True) as resp:
                 if resp.status_code != 200:
                     print(f"  [HTTP {resp.status_code}] skipping", file=sys.stderr)
                     continue
@@ -144,6 +158,8 @@ def main() -> int:
                    help="Override: try this URL only (instead of CANDIDATE_URLS)")
     p.add_argument("--skip-download", action="store_true",
                    help="Don't fetch — just compute SHA256 and parse an existing dilist.xlsx")
+    p.add_argument("--skip-dilirank", action="store_true",
+                   help="Skip the sibling DILIrank fetch")
     args = p.parse_args()
 
     output_dir: Path = args.output_dir
@@ -170,6 +186,23 @@ def main() -> int:
 
     csv_out = output_dir / "dilist_with_severity.csv"
     parse_severity(xlsx_path, csv_out)
+
+    # ── DILIrank 2.0 (sibling, optional) ──────────────────────────────────
+    if not args.skip_download and not args.skip_dilirank:
+        dilirank_dir = output_dir.parent / "DILIrank"
+        dilirank_path = dilirank_dir / "dilirank.xlsx"
+        print(f"\n→ Fetching sibling DILIrank 2.0 to {dilirank_path}", file=sys.stderr)
+        ok, url_used = attempt_download(DILIRANK_URLS, dilirank_path)
+        if ok:
+            dr_digest = sha256_file(dilirank_path)
+            print(f"\nDILIrank file:    {dilirank_path}")
+            print(f"DILIrank SHA256:  {dr_digest}")
+            print(f"DILIrank URL:     {url_used}")
+            print("\nAdd to MANIFEST.md:")
+            print(f"| DILIrank 2.0 | data/raw/DILIrank/dilirank.xlsx | {dr_digest} | FDA NCTR |")
+        else:
+            print("  (DILIrank skipped — DILIst Supplementary Table likely contains severity already)",
+                  file=sys.stderr)
 
     return 0
 
