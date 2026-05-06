@@ -44,7 +44,7 @@ def _make_fake_tdc_module(
 
     class FakeTox:
         def __init__(self, name: str, path: str | None = None) -> None:
-            assert name == "DILI_Hong", f"unexpected dataset name: {name}"
+            assert name == "dili", f"unexpected dataset name: {name}"
             self.name = name
             self.path = path
 

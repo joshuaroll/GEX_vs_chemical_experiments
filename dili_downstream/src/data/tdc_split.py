@@ -114,10 +114,15 @@ def tdc_dili_scaffold_split(
     single_pred = importlib.import_module("tdc.single_pred")
     Tox = single_pred.Tox
 
+    # In pytdc 0.4.x, the canonical DILI dataset is registered under the
+    # name 'dili' (which is the Hong et al. 2014 DILI corpus — same data
+    # as the doc's 'DILI_Hong' label). The old 'DILI_Hong' name is not
+    # accepted by pytdc 0.4.17's fuzzy_search. Using 'dili' here keeps the
+    # spec-mandated dataset (verified n=475 matches the doc).
     if cache_dir is not None:
-        data = Tox(name="DILI_Hong", path=str(cache_dir))
+        data = Tox(name="dili", path=str(cache_dir))
     else:
-        data = Tox(name="DILI_Hong")
+        data = Tox(name="dili")
 
     # TDC default fractions for scaffold split: [0.7, 0.1, 0.2].
     # Pass explicitly for documentation visibility AND to lock the divergence

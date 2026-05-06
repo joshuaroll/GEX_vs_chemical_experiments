@@ -1,0 +1,177 @@
+{
+  "scaffold_split": {
+    "size_train": 894,
+    "size_val": 112,
+    "size_test": 112,
+    "class_balance_train": [
+      0.6208053691275168,
+      555,
+      894
+    ],
+    "class_balance_val": [
+      0.5625,
+      63,
+      112
+    ],
+    "class_balance_test": [
+      0.5982142857142857,
+      67,
+      112
+    ],
+    "stratified": true,
+    "tanimoto_histogram_buckets": [
+      [
+        0.0,
+        0.1,
+        0
+      ],
+      [
+        0.1,
+        0.2,
+        2
+      ],
+      [
+        0.2,
+        0.3,
+        26
+      ],
+      [
+        0.3,
+        0.4,
+        28
+      ],
+      [
+        0.4,
+        0.5,
+        24
+      ],
+      [
+        0.5,
+        0.6,
+        13
+      ],
+      [
+        0.6,
+        0.7,
+        13
+      ],
+      [
+        0.7,
+        0.8,
+        6
+      ],
+      [
+        0.8,
+        0.9,
+        0
+      ],
+      [
+        0.9,
+        1.0,
+        0
+      ]
+    ]
+  },
+  "cluster_split": {
+    "size_train": 894,
+    "size_val": 112,
+    "size_test": 112,
+    "class_balance_train": [
+      0.6118568232662193,
+      547,
+      894
+    ],
+    "class_balance_val": [
+      0.5982142857142857,
+      67,
+      112
+    ],
+    "class_balance_test": [
+      0.6339285714285714,
+      71,
+      112
+    ],
+    "stratified": true,
+    "tanimoto_histogram_buckets": [
+      [
+        0.0,
+        0.1,
+        0
+      ],
+      [
+        0.1,
+        0.2,
+        1
+      ],
+      [
+        0.2,
+        0.3,
+        58
+      ],
+      [
+        0.3,
+        0.4,
+        53
+      ],
+      [
+        0.4,
+        0.5,
+        0
+      ],
+      [
+        0.5,
+        0.6,
+        0
+      ],
+      [
+        0.6,
+        0.7,
+        0
+      ],
+      [
+        0.7,
+        0.8,
+        0
+      ],
+      [
+        0.8,
+        0.9,
+        0
+      ],
+      [
+        0.9,
+        1.0,
+        0
+      ]
+    ]
+  },
+  "tdc_split": {
+    "tdc_version": "0.4.17",
+    "dataset_size": 475,
+    "size_train": 332,
+    "size_val": 47,
+    "size_test": 96
+  },
+  "transfer_slices": {
+    "test_in_pdg": 88,
+    "test_drug_novel": 24,
+    "test_drug_and_scaffold_novel": 24
+  },
+  "upstream_filter": {
+    "d_pdg_total": 6125,
+    "excluded_by_scaffold": 258,
+    "excluded_by_pert_id": 88,
+    "excluded_intersection": 81,
+    "d_pdg_train_after_exclusion": 5860
+  },
+  "halt_gate": {
+    "value": 24,
+    "passed": false,
+    "threshold": 30
+  },
+  "metadata": {
+    "seed": 42,
+    "dili_canonical_rows": 1118,
+    "generated_at": "2026-05-06T17:29:20.500094+00:00"
+  }
+}
