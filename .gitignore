@@ -67,6 +67,7 @@ venv/
 # Allow tracked .gitkeep markers and the manifest tables
 !*/data/raw/.gitkeep
 !*/data/processed/.gitkeep
+!*/data/processed/.gitignore
 !*/data/splits/.gitkeep
 !*/results/tables/
 
