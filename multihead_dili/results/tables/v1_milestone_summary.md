@@ -115,9 +115,15 @@ finding. See `.planning/phases/05-evaluation/HALT_REASON_4.md` for full analysis
    HA1E (human hepatocyte) is the most DILI-informative cell line. Averaging across 9 cells
    including MCF7, A375, etc. dilutes the hepatocyte-specific transcriptional response.
 
-3. **919 / 977 landmark gene overlap (6% missing).**
-   58 landmark genes in LINCS are absent from the MultiDCP gene_vector.csv index.
-   These are simply excluded. The impact on MODEL_GEX quality is unknown.
+3. **919-gene MODEL_GEX output is a PDG inheritance, not a deliberate choice.**
+   MultiDCP's `gene_vector.csv` has 977 rows; the actual training parquet
+   (`lincs_train_safe.parquet`, derived from `pdg_brddrugfiltered.pkl`) has 10,716
+   gene columns of which only 919 overlap with `gene_vector.csv`. The 58-gene gap is
+   PDGrapher's upstream filter — not a deliberate scientific decision by this project.
+   We adopted PDG-filtered LINCS because the existing MultiDCP training scripts
+   (`ehill_multidcp_pretrain.py`, the AE balance-loss trainer) were already wired to
+   it (Q9c in the v0.4 decision log). The impact on MODEL_GEX quality is unknown.
+   v2 should drop the PDG dependency entirely (see §6 item 1).
 
 4. **No calibration tuning.**
    ECE values range 0.08–0.12 across cells. For a DILI risk tool, calibration matters
@@ -138,34 +144,49 @@ finding. See `.planning/phases/05-evaluation/HALT_REASON_4.md` for full analysis
 
 In rough priority order:
 
-1. **Replace predicted GEX with measured LINCS L1000 GEX (direct measurement).**
+1. **Drop the PDG-filtered LINCS dependency; retrain MODEL_GEX on raw LINCS L1000.**
+   v1 inherited PDGrapher's gene + compound filter as a side-effect of reusing MultiDCP's
+   training scripts (Q9c, v0.4 decision log). This shrank MODEL_GEX's output space from 978
+   to 919 genes and the compound corpus by an unknown fraction. Switch to raw LINCS
+   (GSE92742 / GSE70138 / GSE106127) for both training and Stage-2 inference. Benefits:
+   (a) recovers the full 978 landmark gene set, (b) larger compound corpus for training,
+   (c) removes a methodological dependency on a different lab project, (d) cleaner paper
+   provenance ("we used raw LINCS" vs "we used a derivative of another project's filtered
+   dataset"). Cost: redo P2 training (~8–24 GPU hr) + P3 caching + P4 grid + P5 eval
+   (~12–30 hr total). **This should be done before anything else in v2 — every other
+   item below assumes a cleaner upstream GEX corpus.** Note: this is unlikely to flip the
+   v1 negative finding on its own (the embed-vs-all-three gap of 0.009 with CI width 0.15
+   dwarfs any plausible 6% gene-count effect), but it removes a real "is this just PDG
+   curation artifact?" objection a reviewer would raise.
+
+2. **Replace predicted GEX with measured LINCS L1000 GEX (direct measurement).**
    Use the LINCS L1000 profiles for DILIst drugs directly — same feature structure,
    but measured rather than predicted. This isolates whether the GEX representation itself
    is informative (vs being degraded by prediction noise). Expected AUROC gain: moderate.
 
-2. **Drop mean-pool; use HA1E-only GEX pathway.**
+3. **Drop mean-pool; use HA1E-only GEX pathway.**
    Filter Stage-2 GEX features to HA1E cell line output only. This should give the most
    DILI-relevant transcriptional signal and remove cross-cell dilution.
 
-3. **Expand E-Hill corpus with additional public dose-response data (CTD2, NCI-60).**
+4. **Expand E-Hill corpus with additional public dose-response data (CTD2, NCI-60).**
    Replace the 37-drug E-Hill training set with a larger corpus. Target ≥ 500 unique compounds
    with dose-response curves. This is the most likely fix for the near-chance dose pathway.
 
-4. **Attention-based or gated pathway combiner.**
+5. **Attention-based or gated pathway combiner.**
    Replace the concat-MLP with a self-attention combiner (a la FusedTransformer or simple
    gating): let the model learn to up-weight chemistry vs GEX vs dose per drug. May recover
    signal from the GEX pathway that concat suppresses.
 
-5. **Encoder ablation: ChemBERTa / GIN / UniMol vs MolFormer.**
+6. **Encoder ablation: ChemBERTa / GIN / UniMol vs MolFormer.**
    var1 (MolFormer) is the current chemistry-only baseline. Test ChemBERTa (768d), GIN (300d),
    UniMol (512d) as drop-in replacements. MolFormer dominance may not hold for all encoders.
 
-6. **Expand to non-liver organ toxicity (cardiac, renal).**
+7. **Expand to non-liver organ toxicity (cardiac, renal).**
    The DILIst scaffold-split framework generalizes. Swap in a cardiotoxicity or nephrotoxicity
    dataset. Predicted GEX pathways may be more informative for organs where dose-response
    data is richer.
 
-7. **Semi-supervised pre-training on unlabeled LINCS drugs.**
+8. **Semi-supervised pre-training on unlabeled LINCS drugs.**
    Use contrastive/triplet pre-training on the full LINCS corpus (>30K compound-cell pairs)
    to warm-start the Stage-2 combiner before DILI fine-tuning. May improve scaffold-novel
    generalization.
@@ -187,4 +208,4 @@ In rough priority order:
 ---
 
 *Milestone v1.0 closed 2026-05-20.*
-*Next: v2.0 — measured GEX pathway + HA1E-only + expanded E-Hill corpus.*
+*Next: v2.0 — drop PDG-filtered LINCS dependency (§6 #1); then measured GEX pathway, HA1E-only, expanded E-Hill corpus.*
