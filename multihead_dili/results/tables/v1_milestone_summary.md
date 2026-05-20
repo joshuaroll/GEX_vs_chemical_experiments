@@ -142,54 +142,71 @@ finding. See `.planning/phases/05-evaluation/HALT_REASON_4.md` for full analysis
 
 ## 6. v2 Candidate Directions
 
+**Revised 2026-05-20** after reproducing Wang/Li 2020 (PMC7728858) on dili_downstream
+branch (commit `b41f213`). Key finding: **Wang/Li hit AUROC 0.79 on a 1,091-profile
+test set that is 97.5% non-hepatocyte** (HEPG2 + PHH = 27 / 1,091 = 2.5%). Their DILI
+signal comes from measured cancer-cell L1000 profiles + an 8-layer DNN — not from
+hepatocyte data. This shifts the v2 priority calculus: the real gap between our v1
+(0.59 AUROC chemistry-only) and the published 0.79 is most likely **predicted-vs-measured
+GEX** and **classifier capacity** (small head vs 8-layer DNN), not cell-type biology.
+
 In rough priority order:
 
-1. **Drop the PDG-filtered LINCS dependency; retrain MODEL_GEX on raw LINCS L1000.**
-   v1 inherited PDGrapher's gene + compound filter as a side-effect of reusing MultiDCP's
-   training scripts (Q9c, v0.4 decision log). This shrank MODEL_GEX's output space from 978
-   to 919 genes and the compound corpus by an unknown fraction. Switch to raw LINCS
-   (GSE92742 / GSE70138 / GSE106127) for both training and Stage-2 inference. Benefits:
-   (a) recovers the full 978 landmark gene set, (b) larger compound corpus for training,
-   (c) removes a methodological dependency on a different lab project, (d) cleaner paper
-   provenance ("we used raw LINCS" vs "we used a derivative of another project's filtered
-   dataset"). Cost: redo P2 training (~8–24 GPU hr) + P3 caching + P4 grid + P5 eval
-   (~12–30 hr total). **This should be done before anything else in v2 — every other
-   item below assumes a cleaner upstream GEX corpus.** Note: this is unlikely to flip the
-   v1 negative finding on its own (the embed-vs-all-three gap of 0.009 with CI width 0.15
-   dwarfs any plausible 6% gene-count effect), but it removes a real "is this just PDG
-   curation artifact?" objection a reviewer would raise.
+1. **Replicate Wang/Li's 8-layer DNN architecture on measured LINCS, then swap measured → MultiDCP-predicted.**
+   Two runs, same architecture (978 → 512 → 256 → 128 → 64 → 32 → 16 → 8 → 1, ELU,
+   sigmoid, BCE):
+   - Run A: 8-layer DNN on **measured** LINCS DE for DILIst drugs (under our scaffold-novel
+     split + leakage discipline; expected AUROC well above 0.59 if measured GEX has signal).
+   - Run B: 8-layer DNN on **MultiDCP-predicted** GEX for same drugs (under same split).
+   The A vs B gap isolates the "predicted-vs-measured" question cleanly; A vs Wang/Li's
+   0.79 isolates the "scaffold-novel split discipline" question. Together they decompose
+   the v1 negative finding into its two main causes.
 
-2. **Replace predicted GEX with measured LINCS L1000 GEX (direct measurement).**
-   Use the LINCS L1000 profiles for DILIst drugs directly — same feature structure,
-   but measured rather than predicted. This isolates whether the GEX representation itself
-   is informative (vs being degraded by prediction noise). Expected AUROC gain: moderate.
+2. **Drop PDG-filtered LINCS; switch to raw MODZ-normalized LINCS for both training and inference.**
+   The Wang/Li reproduction confirmed our local LINCS is Bayesian-COMPZ-shrunk, not standard
+   MODZ. Wang/Li's actual checkpoint cannot be loaded against Bayesian-shrunk data (gene-specific
+   compression up to 15×; no linear rescaling fixes it). Switching to raw MODZ LINCS would
+   (a) recover the full 978 landmark genes (was 919 post-PDG), (b) enable direct use of Wang/Li's
+   `optimized_model.h5` without retraining, (c) remove the PDGrapher dependency entirely.
+   Reproduction-by-retraining already confirms our pipeline correctness (0.7907 vs published
+   0.798); switching to MODZ would let us compare published-vs-our-checkpoint at the parameter
+   level, not just the metric level.
 
-3. **Drop mean-pool; use HA1E-only GEX pathway.**
-   Filter Stage-2 GEX features to HA1E cell line output only. This should give the most
-   DILI-relevant transcriptional signal and remove cross-cell dilution.
-
-4. **Expand E-Hill corpus with additional public dose-response data (CTD2, NCI-60).**
-   Replace the 37-drug E-Hill training set with a larger corpus. Target ≥ 500 unique compounds
-   with dose-response curves. This is the most likely fix for the near-chance dose pathway.
-
-5. **Attention-based or gated pathway combiner.**
+3. **Attention-based or gated pathway combiner.**
    Replace the concat-MLP with a self-attention combiner (a la FusedTransformer or simple
    gating): let the model learn to up-weight chemistry vs GEX vs dose per drug. May recover
-   signal from the GEX pathway that concat suppresses.
+   signal from the GEX pathway that concat suppresses. Particularly relevant given priority 1's
+   result will likely show measured GEX has more signal than concat-MLP can extract.
+
+4. **Use MultiDCP's joint embedding (128-d) instead of the 919-d DE prediction as the GEX feature.**
+   Modify `cache_dili_features.py` to hook into `MultiDCP.forward()` and grab the
+   `[batch, num_gene, hid_dim=128]` joint representation before the final DE decoder,
+   then mean-pool over genes → 128-d per (drug, cell). Total feature dim drops from
+   1,688 → 897, eliminates the lossy DE reconstruction step, captures the model's joint
+   chem+cell+dose representation. Standard "use the bottleneck, not the reconstruction"
+   move from self-supervised representation learning.
+
+5. **Expand E-Hill corpus with additional public dose-response data (CTD2, NCI-60).**
+   Replace the 37-drug E-Hill training set with a larger corpus. Target ≥ 500 unique compounds
+   with dose-response curves. This is the most likely fix for the near-chance dose pathway.
 
 6. **Encoder ablation: ChemBERTa / GIN / UniMol vs MolFormer.**
    var1 (MolFormer) is the current chemistry-only baseline. Test ChemBERTa (768d), GIN (300d),
    UniMol (512d) as drop-in replacements. MolFormer dominance may not hold for all encoders.
 
-7. **Expand to non-liver organ toxicity (cardiac, renal).**
-   The DILIst scaffold-split framework generalizes. Swap in a cardiotoxicity or nephrotoxicity
-   dataset. Predicted GEX pathways may be more informative for organs where dose-response
-   data is richer.
+7. **(DEPRIORITIZED) Hepatocyte-specific GEX (HepG2-only, PHH, TG-GATEs).**
+   Was a strong v2 candidate pre-Wang/Li-reproduction. The reproduction showed Wang/Li's
+   0.798 came from 97.5% non-hepatocyte profiles, so cell-type filtering to hepatocytes is
+   unlikely to be the lever it appeared to be. **Still worth a controlled run** (HA1E-only
+   vs 9-cell mean-pool with everything else held constant) but no longer the primary v2 lever.
 
-8. **Semi-supervised pre-training on unlabeled LINCS drugs.**
+8. **Expand to non-liver organ toxicity (cardiac, renal).**
+   The DILIst scaffold-split framework generalizes. Swap in a cardiotoxicity or nephrotoxicity
+   dataset.
+
+9. **Semi-supervised pre-training on unlabeled LINCS drugs.**
    Use contrastive/triplet pre-training on the full LINCS corpus (>30K compound-cell pairs)
-   to warm-start the Stage-2 combiner before DILI fine-tuning. May improve scaffold-novel
-   generalization.
+   to warm-start the Stage-2 combiner before DILI fine-tuning.
 
 ---
 
@@ -208,4 +225,27 @@ In rough priority order:
 ---
 
 *Milestone v1.0 closed 2026-05-20.*
-*Next: v2.0 — drop PDG-filtered LINCS dependency (§6 #1); then measured GEX pathway, HA1E-only, expanded E-Hill corpus.*
+*Next: v2.0 — replicate Wang/Li's 8-layer DNN on (measured GEX, predicted GEX) under scaffold-novel split (§6 #1); then raw MODZ LINCS (§6 #2). Hepatocyte filtering deprioritized after Wang/Li reproduction showed their 0.798 holds with 2.5% hepatocyte data (§6 #7).*
+
+---
+
+## Addendum (2026-05-20): Wang/Li reproduction on dili_downstream sibling branch
+
+The v0.5 `dili_downstream/` branch reproduced Wang/Li 2020 (PMC7728858) on
+2026-05-20 (commit `b41f213`). Key results that inform v2 framing:
+
+- **AUROC 0.7907 (10-seed ensemble) vs published 0.798** — PASS (Δ = -0.007, within ±0.02)
+- **Reproduction is via retraining their architecture on our local Bayesian-COMPZ data**, NOT
+  via running their `optimized_model.h5` checkpoint. Their checkpoint loads cleanly but
+  produces AUROC 0.5136 on our data because of a Bayesian-COMPZ vs standard-MODZ
+  normalization mismatch (gene-specific compression up to 15×; no linear rescaling fixes it).
+- **Test split cell distribution (n=1,091):** MCF7 228 (21%), PC3 176 (16%), VCAP 121 (11%),
+  HEPG2 22 (2.0%), PHH 5 (0.5%), other cancer lines ~539 (49%). **Total hepatocyte = 27 (2.5%).**
+- **Implication:** Wang/Li's DILI signal in L1000 comes from measured drug-on-cancer-cell
+  transcriptional response + their 8-layer DNN — not from hepatocyte data. Our v1's
+  cancer-cell-derived predicted-GEX pathway should have had access to similar biological signal;
+  the v1 negative finding likely traces to (a) predicted vs measured GEX noise and/or
+  (b) small classifier head vs 8-layer DNN capacity. This is exactly the decomposition v2 §6 #1
+  is designed to test.
+
+See `dili_downstream/results/tables/P2_wangli_reproduction.md` for full details.
