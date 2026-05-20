@@ -1,0 +1,40 @@
+[eval_model_gex] device=cuda
+[eval_model_gex] Loading parquet: data/processed/lincs_train_safe.parquet
+  Full parquet: 164516 rows
+Dev set: 16452 rows
+Landmark genes available: 919/978
+Using fusion type: sparse_moe
+Using sparse_moe fusion model with balance coefficient 1.0
+Checkpoint loaded: results/checkpoints/chkpt_gex.pt (147 param tensors)
+Cell lines in dev set (10): ['A375', 'A549', 'BT20', 'HA1E', 'HELA', 'HT29', 'MCF7', 'MDAMB231', 'PC3', 'VCAP']
+  A375: 2127 samples processed
+  A549: 1927 samples processed
+  BT20: 126 samples processed
+  HA1E: 1926 samples processed
+  HELA: 1717 samples processed
+  HT29: 1593 samples processed
+  MCF7: 2931 samples processed
+  MDAMB231: 895 samples processed
+  PC3: 2655 samples processed
+  VCAP: 555 samples processed
+
+============================================================
+HALT GATE 2 (HG2) EVALUATION RESULTS
+============================================================
+Per-cell Pearson (top-80 DE genes):
+  A375: 0.4354
+  A549: 0.3657
+  BT20: 0.3466
+  HA1E: 0.1955
+  HELA: 0.2994
+  HT29: 0.4239
+  MCF7: 0.3774
+  MDAMB231: 0.4292
+  PC3: 0.3716
+  VCAP: 0.3237
+Mean Pearson (HG2 metric): 0.3568
+Threshold: 0.2
+HG2 Status: PASS
+============================================================
+Results written to results/tables/P2_hg2_results.json
+
