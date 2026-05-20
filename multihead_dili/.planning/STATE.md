@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: multihead_dili_v1
 status: executing
-stopped_at: Phase 3 complete (EMBED-04 PASS); Phase 4 (scaffold split + Stage-3 classifier) next
-last_updated: "2026-05-20T08:20:00Z"
-last_activity: 2026-05-20 -- Phase 3 complete (commits 6e0bbdb + 0b5fe40); dili_features.parquet written (1118 drugs, 1688-dim, 0 NaN); all 9 CI tests pass
+stopped_at: Phase 4 complete (HG3 PASS); Phase 5 (evaluation + DeLong + figures) next
+last_updated: "2026-05-20T07:50:00Z"
+last_activity: 2026-05-20 -- Phase 4 complete; 630 prediction parquets written; HG3 PASS (embed-only random AUROC=0.6536 >> 0.55)
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 5
-  percent: 50
+  completed_phases: 4
+  total_plans: 12
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -27,7 +27,8 @@ See: `/raid/home/joshua/projects/0_project_documents/multihead_multidcp_dili_imp
 Phase 1: COMPLETE — MODEL_DOSE training (HG1 PASS, dev RMSE=19.455 vs baseline=33.641)
 Phase 2: COMPLETE — MODEL_GEX training (HG2 PASS, mean Pearson=0.3568)
 Phase 3: COMPLETE — MolFormer + Stage-2 feature caching (EMBED-04 PASS, 0 NaN)
-Next: Phase 4 (Stage-3 downstream DILI classifier)
+Phase 4: COMPLETE — 7-way pathway ablation (HG3 PASS, embed-only random AUROC=0.6536)
+Next: Phase 5 (evaluation — DeLong paired tests, bootstrap CIs, figures, HG4)
 
 ## Phase 3 Deliverables (commits 6e0bbdb + 0b5fe40)
 
@@ -60,8 +61,29 @@ Phase 0 landed the leakage-filtered data foundation required by Phases 1 and 2:
 
 **Leakage discipline verified:** Test scaffolds from DILIst are excluded from E-Hill train and LINCS PDG-filtered train sets. MODEL_DOSE and MODEL_GEX will never see DILIst test-set scaffolds during Stage-1 training.
 
+## Phase 4 Deliverables (2026-05-20)
+
+- `src/stage2/classifiers.py` — LinearHead, MLP1Head, MLP2Head, build_head factory
+- `src/stage2/train_dili_classifier.py` — 630-run grid driver (7 variants × 3 heads × 2 splits × 5 folds × 3 seeds)
+- `src/stage2/generate_p4_summary.py` — HG3 check + summary generator
+- `data/processed/predictions/*.parquet` — 630 prediction files (90 per variant)
+- `data/processed/P4_runs.parquet` — 630 rows, one per run, with AUROC/AUPRC/MCC/bal_acc
+- `results/tables/P4_ablation_summary.md` — per-variant per-head mean ± std AUROC + HG3 verdict
+- `.planning/phases/04-dili-consumer-ablation/04-CONTEXT.md` — auto-generated context
+- `.planning/phases/04-dili-consumer-ablation/04-01/02/03-PLAN.md` — 3 plans
+
+Key findings from Phase 4:
+- Wall-clock: ~75 minutes (630 runs, 6 workers, CPU-only)
+- HG3 PASS: embed-only (var1, MolFormer) random AUROC = 0.6536 ± 0.0250 >> 0.55 threshold
+- embed-only is clearly the strongest single pathway (scaffold: 0.5955 >> gex: 0.5187, dose: 0.4779)
+- all-three (var7, headline): scaffold AUROC = 0.5911 — NOT substantially above embed-only (0.5955)
+- Multi-pathway story: minimal synergy on scaffold-novel split; Phase 5 will test with DeLong + CIs
+- pert_id format mismatch fixed: parquet uses int IDs, dili_split.json uses DILIST_XXXX strings
+
 ## Blockers/Concerns
 
-None. Both Stage-1 training sets (`ehill_train_safe.parquet`, `lincs_train_safe.parquet`) are ready. Phase 1 and Phase 2 can begin in parallel on separate GPUs.
+None. Phase 5 can proceed immediately.
+
+Note: HG4 (var7 AUROC >= best single + 0.01 on scaffold split) is borderline — var7=0.5911 vs embed-only=0.5955 (var7 is LOWER). This could fire HG4 in Phase 5. Phase 5 will compute DeLong p-values and bootstrap CIs to determine if the difference is statistically significant.
 
 Remember: always leave one GPU free (shared box constraint; see `CLAUDE.md` hard rules).

@@ -15,7 +15,7 @@
 - [x] Phase 1: MODEL_DOSE training (HG1 PASS — dev RMSE=19.455 vs baseline=33.641 — 2026-05-20)
 - [x] Phase 2: MODEL_GEX training (HG2 PASS — mean Pearson=0.3568 — 2026-05-20)
 - [x] Phase 3: MolFormer download + Stage-2 feature caching (EMBED-04 PASS — 1118 drugs, 1688-dim, 0 NaN — 2026-05-20)
-- [ ] Phase 4: DILI consumer (7-way pathway ablation)
+- [x] Phase 4: DILI consumer (7-way pathway ablation) (HG3 PASS — embed-only random AUROC=0.6536 — 2026-05-20)
 - [ ] Phase 5: Evaluation
 - [ ] Phase 6: Milestone summary
 
@@ -174,9 +174,9 @@ Plans:
 **Plans:** TBD (≥ 1).
 
 Plans:
-- [ ] 04-01-PLAN.md — classifiers.py + train_dili_classifier.py [Wave 1]
-- [ ] 04-02-PLAN.md — 630-run grid execution (embarrassingly parallel) [Wave 2]
-- [ ] 04-03-PLAN.md — halt gate 3 + P4 summary [Wave 3]
+- [x] 04-01-PLAN.md — classifiers.py + train_dili_classifier.py [Wave 1] — COMPLETE (commit 0d210aa)
+- [x] 04-02-PLAN.md — 630-run grid execution (embarrassingly parallel) [Wave 2] — COMPLETE (630 parquets)
+- [x] 04-03-PLAN.md — halt gate 3 + P4 summary [Wave 3] — COMPLETE (HG3 PASS)
 
 **Success criteria:**
 
