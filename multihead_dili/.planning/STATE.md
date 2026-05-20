@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: multihead_dili_v1
-status: executing
-stopped_at: Phase 4 complete (HG3 PASS); Phase 5 (evaluation + DeLong + figures) next
-last_updated: "2026-05-20T07:50:00Z"
-last_activity: 2026-05-20 -- Phase 4 complete; 630 prediction parquets written; HG3 PASS (embed-only random AUROC=0.6536 >> 0.55)
+status: complete
+stopped_at: Phase 6 complete — milestone v1.0 done
+last_updated: "2026-05-20T12:00:00Z"
+last_activity: 2026-05-20 -- Phase 6 complete; v1_milestone_summary.md written; all 6 phases done
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 6
   total_plans: 12
-  completed_plans: 8
-  percent: 67
+  completed_plans: 12
+  percent: 100
 ---
 
 # Project State
@@ -28,7 +28,7 @@ Phase 1: COMPLETE — MODEL_DOSE training (HG1 PASS, dev RMSE=19.455 vs baseline
 Phase 2: COMPLETE — MODEL_GEX training (HG2 PASS, mean Pearson=0.3568)
 Phase 3: COMPLETE — MolFormer + Stage-2 feature caching (EMBED-04 PASS, 0 NaN)
 Phase 4: COMPLETE — 7-way pathway ablation (HG3 PASS, embed-only random AUROC=0.6536)
-Next: Phase 5 (evaluation — DeLong paired tests, bootstrap CIs, figures, HG4)
+Next: v2.0 (measured GEX pathway + HA1E-only + expanded E-Hill corpus — not yet started)
 
 ## Phase 3 Deliverables (commits 6e0bbdb + 0b5fe40)
 
@@ -80,10 +80,30 @@ Key findings from Phase 4:
 - Multi-pathway story: minimal synergy on scaffold-novel split; Phase 5 will test with DeLong + CIs
 - pert_id format mismatch fixed: parquet uses int IDs, dili_split.json uses DILIST_XXXX strings
 
+## Phase 5 Deliverables (commit ef4296b — 2026-05-20)
+
+- `src/stage2/evaluate_dili.py` — DeLong + 10K bootstrap + ECE calibration utility
+- `results/tables/headline.md` — 21-cell AUROC + 95% CI + DeLong table
+- `results/tables/P5_eval_results.parquet` — raw cell-level metrics
+- `results/tables/P5_delong_results.parquet` — DeLong test results
+- `results/tables/P5_evaluation_summary.md` — narrative findings
+- `results/figures/ablation.png` — 7-way ablation bar chart with 95% CI error bars
+- `results/figures/comparison_v05.png` — comparison note (v0.5 not comparable)
+- `.planning/phases/05-evaluation/HALT_REASON_4.md` — HG4 reframe
+
+Key findings from Phase 5:
+- HG4 REFRAME: var7 all-three (best AUROC=0.5843) < var1 embed-only (0.5930) by 0.0087 on scaffold split
+- DeLong p-values: 0.546 (linear), 0.144 (mlp1), 0.307 (mlp2) — none significant
+- Negative finding: predicted GEX + predicted dose add no measurable signal over chemistry alone
+- All CIs wide (order 0.15–0.20) due to small test set (~168 scaffold-novel drugs)
+
+## Phase 6 Deliverables (this session — 2026-05-20)
+
+- `results/tables/v1_milestone_summary.md` — full milestone summary
+- Updated STATE.md, ROADMAP.md, MILESTONES.md
+
 ## Blockers/Concerns
 
-None. Phase 5 can proceed immediately.
-
-Note: HG4 (var7 AUROC >= best single + 0.01 on scaffold split) is borderline — var7=0.5911 vs embed-only=0.5955 (var7 is LOWER). This could fire HG4 in Phase 5. Phase 5 will compute DeLong p-values and bootstrap CIs to determine if the difference is statistically significant.
+None. Milestone v1.0 is complete. v2 candidate directions documented in v1_milestone_summary.md.
 
 Remember: always leave one GPU free (shared box constraint; see `CLAUDE.md` hard rules).

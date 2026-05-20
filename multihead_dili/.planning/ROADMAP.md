@@ -16,8 +16,8 @@
 - [x] Phase 2: MODEL_GEX training (HG2 PASS — mean Pearson=0.3568 — 2026-05-20)
 - [x] Phase 3: MolFormer download + Stage-2 feature caching (EMBED-04 PASS — 1118 drugs, 1688-dim, 0 NaN — 2026-05-20)
 - [x] Phase 4: DILI consumer (7-way pathway ablation) (HG3 PASS — embed-only random AUROC=0.6536 — 2026-05-20)
-- [ ] Phase 5: Evaluation
-- [ ] Phase 6: Milestone summary
+- [x] Phase 5: Evaluation (HG4 REFRAME — embed-only matches all-three, DeLong NS — 2026-05-20; commit ef4296b)
+- [x] Phase 6: Milestone summary (COMPLETE 2026-05-20)
 
 ---
 
