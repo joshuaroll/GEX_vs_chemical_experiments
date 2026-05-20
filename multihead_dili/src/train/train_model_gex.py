@@ -67,12 +67,15 @@ print(f"[train_model_gex] device={device}")
 # CUSTOM DATASET: reads pre-split landmark-gene-filtered numpy arrays
 # =============================================================================
 class LINCSGEXDataset(Dataset):
-    """Dataset for LINCS dose-aggregated GEX (AE training path)."""
+    """Dataset for LINCS dose-aggregated GEX (AE training path).
 
-    def __init__(self, gene_vals: np.ndarray, cell_ids: list, device):
-        self.device = device
-        # gene_vals: [n, n_landmark_genes] float64
-        self.data = torch.from_numpy(gene_vals.astype(np.float64)).to(device)
+    Data is kept on CPU in the Dataset to allow DataLoader multiprocessing.
+    The training loop moves batches to the correct device.
+    """
+
+    def __init__(self, gene_vals: np.ndarray, cell_ids: list):
+        # gene_vals: [n, n_landmark_genes] float64 — stored on CPU
+        self.data = torch.from_numpy(gene_vals.astype(np.float64))
         self.cell_ids = cell_ids  # list of str cell IDs, length n
 
     def __len__(self):
@@ -97,6 +100,8 @@ def model_training_ae(args, model, train_loader, dev_loader, dev_cell_ids, metri
         epoch_loss = 0
 
         for i, (feature, label, _) in enumerate(train_loader):
+            feature = feature.to(device)
+            label = label.to(device)
             optimizer.zero_grad()
             predict, cell_hidden_ = model(input_cell_gex=feature, job_id='ae', epoch=epoch)
             loss_t = model.loss(label, predict)
@@ -117,6 +122,8 @@ def model_training_ae(args, model, train_loader, dev_loader, dev_cell_ids, metri
 
         with torch.no_grad():
             for i, (feature, label, cell_id_batch) in enumerate(dev_loader):
+                feature = feature.to(device)
+                label = label.to(device)
                 predict, _ = model(input_cell_gex=feature, job_id='ae', epoch=epoch)
                 loss = model.loss(label, predict)
                 epoch_loss_dev += loss.item()
@@ -182,7 +189,9 @@ if __name__ == '__main__':
     parser.add_argument('--cell_ge_file', default='/raid/home/joshua/projects/MultiDCP/MultiDCP/data/adjusted_ccle_tcga_ad_tpm_log2.csv')
     parser.add_argument('--all_cells', default='/raid/home/joshua/projects/MultiDCP/MultiDCP/data/ccle_tcga_ad_cells.p')
     parser.add_argument('--linear_encoder_flag', dest='linear_encoder_flag', action='store_true', default=False)
-    parser.add_argument('--fusion_type', type=str, default='concat')
+    parser.add_argument('--fusion_type', type=str, default='sparse_moe',
+                        help='Fusion type for MultiDCP (sparse_moe or balanced_moe). '
+                             'AE path does not use fusion; this sets the model init only.')
     parser.add_argument('--pretrained_model', type=str, default=None)
 
     # Phase 2 additions
@@ -262,10 +271,10 @@ if __name__ == '__main__':
         args.num_landmark_genes = len(avail_genes)
         print(f"  num_landmark_genes: {args.num_landmark_genes}")
 
-        # Build DataLoaders
-        train_dataset = LINCSGEXDataset(train_vals, train_cell_ids, device)
-        dev_dataset   = LINCSGEXDataset(dev_vals, dev_cell_ids, device)
-        test_dataset  = LINCSGEXDataset(test_vals, test_cell_ids, device)
+        # Build DataLoaders (CPU datasets, batches moved to device in training loop)
+        train_dataset = LINCSGEXDataset(train_vals, train_cell_ids)
+        dev_dataset   = LINCSGEXDataset(dev_vals, dev_cell_ids)
+        test_dataset  = LINCSGEXDataset(test_vals, test_cell_ids)
 
         # Custom collate to handle string cell_ids (can't stack strings with default collate)
         def _collate(batch):
@@ -298,7 +307,7 @@ if __name__ == '__main__':
         'pert_idose_input_dim': 6,  # kept at 6 for model compat (not used in AE path)
         'dropout': args.dropout,
         'linear_encoder_flag': args.linear_encoder_flag,
-        'fusion_type': args.fusion_type,
+        'fusion_type': args.fusion_type,  # 'sparse_moe' by default — AE path doesn't use fusion layer
     })
 
     print(f'--------------with linear encoder: {args.linear_encoder_flag!r}--------------')
@@ -309,8 +318,14 @@ if __name__ == '__main__':
 
     # ---- WandB init ----
     run_name = f"model_gex_seed{args.seed}_bs{args.batch_size}_ep{args.max_epoch}"
+    # wandb_project may be 'entity/project' format — split if needed (new wandb API)
+    _wandb_project = args.wandb_project
+    _wandb_entity = None
+    if '/' in _wandb_project:
+        _wandb_entity, _wandb_project = _wandb_project.split('/', 1)
     wandb.init(
-        project=args.wandb_project,
+        project=_wandb_project,
+        entity=_wandb_entity,
         group=args.wandb_group,
         name=run_name,
         config=vars(args),
