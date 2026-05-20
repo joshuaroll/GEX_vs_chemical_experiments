@@ -225,7 +225,7 @@ In rough priority order:
 ---
 
 *Milestone v1.0 closed 2026-05-20.*
-*Next: v2.0 — replicate Wang/Li's 8-layer DNN on (measured GEX, predicted GEX) under scaffold-novel split (§6 #1); then raw MODZ LINCS (§6 #2). Hepatocyte filtering deprioritized after Wang/Li reproduction showed their 0.798 holds with 2.5% hepatocyte data (§6 #7).*
+*v2 P1 result (2026-05-20, see Addendum 2): the v1 → Wang/Li gap is profile-level leakage, not predicted-vs-measured GEX or classifier capacity. Drug-level evaluation collapses both GEX feature sources to chance. Next: sharpen the leakage finding into a publishable methodological correction (v2 P2 — three-bar comparison: profile-level vs drug-level vs scaffold-level under Wang/Li's exact architecture and data).*
 
 ---
 
@@ -249,3 +249,77 @@ The v0.5 `dili_downstream/` branch reproduced Wang/Li 2020 (PMC7728858) on
   is designed to test.
 
 See `dili_downstream/results/tables/P2_wangli_reproduction.md` for full details.
+
+---
+
+## Addendum 2 (2026-05-20): v2 P1 results — leakage decomposition
+
+Ran v2 §6 #1 (Wang/Li 8-layer DNN on measured GEX vs predicted GEX, same drugs,
+same scaffold-novel split). The decomposition came back with an answer that
+wasn't in either of the two predicted categories. Commit `229b1f7`.
+
+**Drug subset:** 628 of 1,118 DILIst drugs intersect with Wang/Li's 6000-profile
+LINCS corpus (not 502 as the milestone summary estimated). Filtered scaffold-novel
+split: train 461 / val 62 / test 105 drugs.
+
+**Results (n_test ≈ 105–128, 5 folds × 5 seeds = 25 runs per cell):**
+
+| Condition | Feature | Split | AUROC | 95% CI |
+|---|---|---|---|---|
+| Run A: Wang/Li 8-layer DNN | measured LINCS DE (978d, per-drug mean over profiles) | scaffold-novel | **0.4565** | [0.30, 0.53] |
+| Run A | measured | random (drug-level) | 0.5014 | [0.40, 0.61] |
+| Run B: Wang/Li 8-layer DNN | MultiDCP-predicted GEX (919d) | scaffold-novel | **0.5046** | [0.44, 0.67] |
+| Run B | predicted | random (drug-level) | 0.5002 | [0.35, 0.57] |
+| v1 reference | MolFormer chemistry (768d) | scaffold-novel (mlp2) | 0.5930 | [0.53, 0.70] |
+| Wang/Li repro (profile-level) | measured | their Usage split, 5,517 profiles | **0.761** (10-seed) | — |
+| Wang/Li published | measured | their Usage split | **0.798** | — |
+
+**DeLong (Run A vs Run B):** scaffold p = 0.091 (NS), random p = 0.587 (NS).
+
+**Headline interpretation:** Neither of the two predicted causes of the v1 → Wang/Li
+gap (predicted-vs-measured GEX, or classifier capacity) explains the ~0.20 AUROC
+difference. The gap is almost entirely **profile-level leakage** in Wang/Li's
+evaluation protocol (their split groups profile sig_ids, not drugs — so the same
+drug appears in train AND test via its different cells/doses). Under proper
+drug-level evaluation:
+
+- Measured LINCS GEX **fails to generalize to novel scaffolds** (0.4565, below
+  v1 chemistry-only baseline)
+- Predicted GEX marginally beats measured on scaffold-novel (0.5046 vs 0.4565,
+  point estimate only; not statistically significant)
+- The 8-layer DNN does **not** help over a small MLP at drug-level
+- MolFormer chemistry (0.59) remains the strongest individual DILI feature
+
+**This is a stronger, methodologically more interesting story than v1 alone.**
+The publishable finding is now a correction to a cited paper: Wang/Li 2020's
+AUROC 0.798 is inflated by ~0.26 AUROC of profile-level leakage; under proper
+drug-level scaffold-novel evaluation, neither measured nor predicted LINCS GEX
+transfers to novel drugs, and frozen MolFormer chemistry embeddings are the
+strongest single feature for DILI prediction at this scale.
+
+**v2 P2 plan:** Sharpen this finding into a publishable result. Run Wang/Li's
+exact architecture on Wang/Li's exact data with three split disciplines
+(profile-level / drug-level random / scaffold-level), one architecture, three
+bars on one figure, with confidence intervals and DeLong pairwise tests.
+Estimated 1-2 hr wall-clock.
+
+See `multihead_dili/results/tables/v2_p1_summary.md` for full v2 P1 details.
+
+---
+
+## Revised v2 Priority Order (post-P1)
+
+After v2 P1, the priority list shifts:
+
+1. **v2 P2 — Sharpen the leakage finding** (THIS IS NEXT). Three-bar comparison
+   under controlled conditions; produces the publishable figure.
+2. **External validation** on a non-LINCS DILI dataset (LiverTox / extended DILIrank)
+   to confirm chemistry-alone result generalizes outside the Wang/Li corpus.
+3. **Larger drug corpus** — n_test=105 is the source of wide CIs; ToxCast/Tox21
+   provides ~10K compounds with liver-relevant assays.
+4. Hepatocyte-specific data (TG-GATEs PHH) — still potentially worth a controlled
+   run, but the v2 P1 result suggests the issue may not be cell-type at all.
+5. (deferred) Drop PDG / raw MODZ LINCS — now mostly relevant for Wang/Li
+   checkpoint loadability, less critical for the headline story.
+6-9. (deferred) MultiDCP bottleneck embedding, attention combiner, encoder ablation,
+   non-liver organ toxicity, SSL pre-training.
