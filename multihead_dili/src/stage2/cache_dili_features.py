@@ -97,9 +97,12 @@ def parse_args():
 def load_dose_model(ckpt_path: str, device: torch.device):
     """Load MODEL_DOSE (MultiDCPEhillPretraining) from checkpoint.
 
+    MODEL_DOSE was trained with multidcp.py (original concat fusion),
+    NOT multidcp_balanceloss.py (MoE). Must import from multidcp.py.
+
     Returns: (model, model_params dict)
     """
-    import multidcp_balanceloss as multidcp
+    import multidcp
 
     ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
     model_params = dict(ckpt['model_params'])
@@ -158,11 +161,13 @@ def build_gene_filter_and_baselines(dose_num_gene: int, gex_num_gene: int):
         dose_baselines:      dict {cell: DoubleTensor [dose_num_gene]}
         gex_baselines:       dict {cell: DoubleTensor [gex_num_gene]}
     """
-    # ---- Gene topology for MODEL_DOSE (978-gene, default csv read) ----
-    gene_df_dose = pd.read_csv(GENE_VECTOR_FILE, index_col=0)  # 977 rows with default header
-    dose_genes = gene_df_dose.index.tolist()
-    dose_gene_tensor = torch.tensor(gene_df_dose.values, dtype=torch.float64)
-    print(f'  DOSE gene topology: {len(dose_genes)} genes from gene_vector.csv')
+    # ---- Gene topology for MODEL_DOSE (978-gene, using data_utils.read_gene = training convention) ----
+    # Training used data_utils.read_gene which reads all non-empty lines without header logic.
+    # gene_vector.csv has 978 non-empty lines → [978, 128] tensor.
+    # DO NOT use pandas default header here (that would give 977 rows, mismatching training).
+    from data_utils import read_gene as _read_gene
+    dose_gene_tensor = _read_gene(str(GENE_VECTOR_FILE), torch.device('cpu'))  # [978, 128], CPU
+    print(f'  DOSE gene topology: {dose_gene_tensor.shape[0]} genes (via data_utils.read_gene)')
 
     # ---- Gene topology for MODEL_GEX (919-gene overlap, header=None) ----
     # Training used header=None giving 978 rows; overlap with lincs parquet = 919
@@ -246,8 +251,9 @@ def infer_dose_one_drug_all_cells(model_dose, drug_smiles: str,
     drug_feat = convert_smile_to_feature([drug_smiles], device)
     mask = create_mask_feature(drug_feat, device)
 
-    # Gene topology: [1, num_gene, 128] (repeat batch dim)
-    gene_t = dose_gene_tensor.unsqueeze(0).to(device)  # [1, num_gene, 128]
+    # Gene topology: [num_gene, 128] — model internally adds batch dim via unsqueeze(0)
+    # DO NOT unsqueeze here; MultiDCPBase.forward does gene_embed.unsqueeze(0) internally.
+    gene_t = dose_gene_tensor.to(device)  # [num_gene, 128]
 
     # pert_idose: use 6-dim one-hot with all zeros (dose-agnostic at inference)
     # Same convention as AE training: pass zeros since we don't have a specific dose
@@ -288,8 +294,9 @@ def infer_gex_one_drug_all_cells(model_gex, drug_smiles: str,
     drug_feat = convert_smile_to_feature([drug_smiles], device)
     mask = create_mask_feature(drug_feat, device)
 
-    # Gene topology for GEX model: [1, num_gene, 128]
-    gene_t = gex_gene_tensor.unsqueeze(0).to(device)  # [1, gex_num_gene, 128]
+    # Gene topology for GEX model: [gex_num_gene, 128]
+    # DO NOT unsqueeze here; MultiDCPBase.forward does gene_embed.unsqueeze(0) internally.
+    gene_t = gex_gene_tensor.to(device)  # [gex_num_gene, 128]
 
     # pert_idose: 6-dim zeros (dose-agnostic)
     pert_idose = torch.zeros(1, pert_idose_input_dim, dtype=torch.float64).to(device)
@@ -400,21 +407,32 @@ def main():
     print(f'Running {len(dili_df)} × 10 cells × 2 models = '
           f'{len(dili_df) * 10 * 2:,} forward passes...')
     rows = []
+    skipped_smiles = []
     for drug_idx, drug_row in dili_df.iterrows():
         drug_name = drug_row['drug_name']
         smiles = drug_row['canonical_smiles']
 
         # MODEL_DOSE inference: mean E-Hill over 10 cells
-        feat_dose = infer_dose_one_drug_all_cells(
-            model_dose, smiles, dose_gene_tensor, dose_baselines, device,
-            dose_pert_idose_dim,
-        )
+        # Catch SMILES featurization failures (e.g., atom degree > 5 in MultiDCP featurizer)
+        try:
+            feat_dose = infer_dose_one_drug_all_cells(
+                model_dose, smiles, dose_gene_tensor, dose_baselines, device,
+                dose_pert_idose_dim,
+            )
+        except Exception as e:
+            print(f'  WARN: DOSE featurization failed for {drug_name} ({smiles[:40]}...): {e}')
+            skipped_smiles.append((drug_name, smiles, str(e)))
+            feat_dose = 0.0
 
         # MODEL_GEX inference: mean DE vector over 10 cells
-        feat_gex = infer_gex_one_drug_all_cells(
-            model_gex, smiles, gex_gene_tensor, gex_baselines, device,
-            gex_num_gene, gex_pert_idose_dim,
-        )  # [gex_num_gene]
+        try:
+            feat_gex = infer_gex_one_drug_all_cells(
+                model_gex, smiles, gex_gene_tensor, gex_baselines, device,
+                gex_num_gene, gex_pert_idose_dim,
+            )  # [gex_num_gene]
+        except Exception as e:
+            print(f'  WARN: GEX featurization failed for {drug_name} ({smiles[:40]}...): {e}')
+            feat_gex = np.zeros(gex_num_gene, dtype=np.float64)
 
         # MolFormer embedding
         feat_embed = molformer_embeddings[drug_idx].numpy()  # [768]
@@ -444,6 +462,11 @@ def main():
                 wandb.log({'progress/drugs_done': drug_idx + 1,
                            'progress/elapsed_sec': elapsed})
 
+    if skipped_smiles:
+        print(f'\nWARN: {len(skipped_smiles)} drug(s) had featurization failures (zeros used):')
+        for name, smi, err in skipped_smiles:
+            print(f'  {name}: {smi[:60]} -> {err}')
+
     # ---- Write parquet ----
     out_df = pd.DataFrame(rows)
     out_path = Path(args.out)
@@ -455,7 +478,9 @@ def main():
     feat_cols   = [c for c in out_df.columns if c.startswith('feat_')]
     gex_cols    = [c for c in feat_cols if 'gex' in c]
     embed_cols  = [c for c in feat_cols if 'embed' in c]
-    nan_count   = int(out_df.isnull().sum().sum())
+    # Only check NaN in feature columns — dili_severity can legitimately be NaN
+    # (not all 1118 drugs have severity metadata)
+    nan_count   = int(out_df[feat_cols].isnull().sum().sum())
     print(f'=== Output stats ===')
     print(f'  Rows: {len(out_df)}')
     print(f'  feat_dose:  1 col')
