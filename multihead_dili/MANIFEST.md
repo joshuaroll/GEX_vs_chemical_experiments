@@ -18,11 +18,22 @@ Data sources, model checkpoints, and code SHAs pinned for reproducibility.
 
 | Item | Path | SHA / version | Date pinned |
 |---|---|---|---|
-| MultiDCP upstream | `/raid/home/joshua/projects/MultiDCP` | _Phase 1: record_ | _TBD_ |
-| `ehill_multidcp_pretrain.py` | `MultiDCP/ehill_multidcp_pretrain.py` | (same SHA) | _TBD_ |
-| `multidcp_ae_balanceloss.py` | `MultiDCP/MultiDCP/models/multidcp_ae_balanceloss.py` | (same SHA) | _TBD_ |
+| MultiDCP upstream | `/raid/home/joshua/projects/MultiDCP` | `871b8de` | 2026-05-20 |
+| `ehill_multidcp_pretrain.py` | `MultiDCP/ehill_multidcp_pretrain.py` | (same SHA) | 2026-05-20 |
+| `multidcp_ae_balanceloss.py` | `MultiDCP/MultiDCP/models/multidcp_ae_balanceloss.py` | (same SHA) | 2026-05-20 |
 | MolFormer (HF) | `transformers >= 4.40` | _Phase 3: record_ | _TBD_ |
 | `dili_v04_env` | conda env | _Phase 0: record `conda list` snapshot_ | _TBD_ |
+
+## MultiDCP (Stage-1 model backbone)
+
+| Item | Value |
+|------|-------|
+| Repo path | `/raid/home/joshua/projects/MultiDCP/` |
+| SHA | `871b8de` |
+| SHA confirmed | 2026-05-20 (Phase 2 planning) |
+| Canonical AE script | `MultiDCP/MultiDCP/models/multidcp_ae_balanceloss.py` |
+| Fork target | `multihead_dili/src/train/train_model_gex.py` |
+| Model class | `multidcp_balanceloss.MultiDCP_AE` |
 
 ## Checkpoints
 
