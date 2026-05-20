@@ -71,6 +71,9 @@ venv/
 !*/data/splits/.gitkeep
 !*/results/tables/
 
+# Allow key publication figures (explicitly tracked)
+!multihead_dili/results/figures/v2_leakage_decomposition.png
+
 # DILIst raw downloads (large, license-restricted distribution)
 */data/raw/DILIst/*.xlsx
 */data/raw/DILIrank/*.xlsx
