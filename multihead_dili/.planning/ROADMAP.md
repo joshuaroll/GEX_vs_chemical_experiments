@@ -13,7 +13,7 @@
 
 - [x] Phase 0: Data foundation (pre-GSD prerequisite — complete 2026-05-20; commit e281e9f)
 - [ ] Phase 1: MODEL_DOSE training
-- [ ] Phase 2: MODEL_GEX training
+- [x] Phase 2: MODEL_GEX training (HG2 PASS — mean Pearson=0.3568 — 2026-05-20)
 - [ ] Phase 3: MolFormer download + Stage-2 feature caching
 - [ ] Phase 4: DILI consumer (7-way pathway ablation)
 - [ ] Phase 5: Evaluation
@@ -108,9 +108,9 @@ Plans:
 **Plans:** TBD (≥ 1).
 
 Plans:
-- [ ] 02-01-PLAN.md — train_model_gex.py fork + DE-rule evaluator [Wave 1]
-- [ ] 02-02-PLAN.md — training run + WandB logging + checkpoint save [Wave 2]
-- [ ] 02-03-PLAN.md — halt gate 2 check + P2 summary [Wave 3]
+- [x] 02-01-PLAN.md — train_model_gex.py fork + DE-rule evaluator [Wave 1] — COMPLETE (commit 9216d06)
+- [x] 02-02-PLAN.md — training run + WandB logging + checkpoint save [Wave 2] — COMPLETE (commit c567589)
+- [x] 02-03-PLAN.md — halt gate 2 check + P2 summary [Wave 3] — COMPLETE (commit 92cc932)
 
 **Success criteria:**
 
