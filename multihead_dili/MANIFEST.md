@@ -7,7 +7,8 @@ Data sources, model checkpoints, and code SHAs pinned for reproducibility.
 | Item | Path | SHA256 | Date pinned |
 |---|---|---|---|
 | E-Hill train | `/raid/home/joshua/data/MultiDCP/data/ehill_data/high_confident_data_train.csv` | _Phase 0: record_ | _TBD_ |
-| E-Hill dev | `.../high_confident_data_dev.csv` | _Phase 0: record_ | _TBD_ |
+| E-Hill dev (raw) | `/raid/home/joshua/data/MultiDCP/data/ehill_data/high_confident_data_dev.csv` | _Phase 1: record_ | 2026-05-20 |
+| E-Hill dev (safe) | `data/processed/ehill_dev_safe.parquet` | _Phase 1: record_ | 2026-05-20 |
 | E-Hill test | `.../high_confident_data_test.csv` | _Phase 0: record_ | _TBD_ |
 | LINCS PDG-filtered | `/raid/home/joshua/projects/MultiDCP/MultiDCP/data/pdg_brddrugfiltered.pkl` | _Phase 0: record_ | _TBD_ |
 | DILIst canonical | `../dili_downstream/data/processed/dili_canonical.csv` | _Phase 0: record_ | _TBD_ |
@@ -19,7 +20,7 @@ Data sources, model checkpoints, and code SHAs pinned for reproducibility.
 | Item | Path | SHA / version | Date pinned |
 |---|---|---|---|
 | MultiDCP upstream | `/raid/home/joshua/projects/MultiDCP` | `871b8de` | 2026-05-20 |
-| `ehill_multidcp_pretrain.py` | `MultiDCP/ehill_multidcp_pretrain.py` | (same SHA) | 2026-05-20 |
+| `ehill_multidcp_pretrain.py` | `MultiDCP/MultiDCP/ehill_multidcp_pretrain.py` | `871b8de` | 2026-05-20 |
 | `multidcp_ae_balanceloss.py` | `MultiDCP/MultiDCP/models/multidcp_ae_balanceloss.py` | (same SHA) | 2026-05-20 |
 | MolFormer (HF) | `transformers >= 4.40` | _Phase 3: record_ | _TBD_ |
 | `dili_v04_env` | conda env | _Phase 0: record `conda list` snapshot_ | _TBD_ |
