@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: multihead_dili_v1
 status: executing
-stopped_at: Phase 2 complete (HG2 PASS); Phase 3 unblocked (pending Phase 1 completion)
-last_updated: "2026-05-20T06:30:00Z"
-last_activity: 2026-05-20 -- Phase 2 complete (commit 92cc932); MODEL_GEX HG2 PASS (mean Pearson=0.3568); Phase 1 still in progress concurrently
+stopped_at: Phase 3 complete (EMBED-04 PASS); Phase 4 (scaffold split + Stage-3 classifier) next
+last_updated: "2026-05-20T08:20:00Z"
+last_activity: 2026-05-20 -- Phase 3 complete (commits 6e0bbdb + 0b5fe40); dili_features.parquet written (1118 drugs, 1688-dim, 0 NaN); all 9 CI tests pass
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 3
-  percent: 17
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -24,11 +24,26 @@ See: `/raid/home/joshua/projects/0_project_documents/multihead_multidcp_dili_imp
 
 ## Current Position
 
+Phase 1: COMPLETE — MODEL_DOSE training (HG1 PASS, dev RMSE=19.455 vs baseline=33.641)
 Phase 2: COMPLETE — MODEL_GEX training (HG2 PASS, mean Pearson=0.3568)
-Phase 1: IN PROGRESS concurrently (MODEL_DOSE on GPU 0; separate subagent)
-Next: Phase 3 (MolFormer + Stage-2 feature caching) — BLOCKED until Phase 1 also complete (needs chkpt_dose.pt)
+Phase 3: COMPLETE — MolFormer + Stage-2 feature caching (EMBED-04 PASS, 0 NaN)
+Next: Phase 4 (Stage-3 downstream DILI classifier)
 
-Note: Phase 0 was completed via the `writing-plans` + `executing-plans` workflow before GSD took over. It is a pre-GSD prerequisite; GSD manages Phases 1–6 only. `completed_phases: 0` reflects GSD's accounting (0 of 6 GSD-managed phases done).
+## Phase 3 Deliverables (commits 6e0bbdb + 0b5fe40)
+
+- `src/embed/molformer_wrapper.py` — frozen MolFormer encoder (768-dim SMILES embedding)
+- `src/stage2/cache_dili_features.py` — Stage-2 caching driver
+- `data/processed/dili_features.parquet` — 1118 rows × 1694 cols (1688 features)
+- `tests/test_stage2_features.py` — 9 CI regression tests (all pass)
+- `results/tables/P3_stage2_summary.md` — phase summary with deviations documented
+
+Key findings from Phase 3:
+- SMILES failure: nitroprusside (iron coordination compound, atom degree 6 unsupported) → zeros used
+- MODEL_DOSE uses `multidcp.py` (original concat), not `multidcp_balanceloss.py` (MoE)
+- Gene tensor: pass [num_gene, 128] directly — model adds batch dim internally
+- MolFormer: transformers 5.x rotary embedding NaN bug fixed by re-init before .to(device)
+
+Note: Phase 0 was completed via the `writing-plans` + `executing-plans` workflow before GSD took over. It is a pre-GSD prerequisite; GSD manages Phases 1–6 only.
 
 ## Phase 0 Deliverables (pre-GSD, commit e281e9f)
 
