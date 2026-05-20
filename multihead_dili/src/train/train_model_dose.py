@@ -56,9 +56,60 @@ sys.path.insert(0, _MULTIDCP_UTILS)
 import multidcp
 import datareader
 import metric
+import data_utils
 from scheduler_lr import step_lr
 
 MULTIDCP_SHA = '871b8de'
+
+# ---- Patch data_utils.transform_to_tensor_per_dataset_ehill ----------------
+# The upstream function uses ft[1] for cell_id, but the high_confident_data*.csv
+# format has columns [pert_id, pert_type, cell_id, pert_idose] (not [pert_id, cell_id, dose]).
+# ft[1] = pert_type (e.g. 'trt_cp'), ft[2] = cell_id, ft[3] = pert_idose.
+# This patch uses the correct column indices for the actual data format.
+
+def _patched_transform_ehill(feature, label, drug, device, basal_expression_file):
+    import pandas as _pd
+    import numpy as _np
+    if not basal_expression_file.endswith('csv'):
+        basal_expression_file += '.csv'
+    basal_csv = _pd.read_csv(basal_expression_file, index_col=0)
+    drug_feature = []
+
+    # feature columns from read_data: [pert_id(0), pert_type(1), cell_id(2), pert_idose(3)]
+    cell_id_set   = sorted(list(set(feature[:, 2])))   # ft[2] = cell_id
+    pert_idose_set = sorted(list(set(feature[:, 3])))  # ft[3] = pert_idose
+    use_pert_type  = False
+    use_cell_id    = True
+    use_pert_idose = len(pert_idose_set) > 1
+
+    pert_idose_dict = dict(zip(pert_idose_set, range(len(pert_idose_set)))) if use_pert_idose else {}
+
+    print(f'Feature Summary (patched): {len(cell_id_set)} cell lines, {len(pert_idose_set)} doses')
+
+    final_cell_id_feature   = []
+    final_pert_idose_feature = []
+
+    for ft in feature:
+        drug_fp = drug[ft[0]]
+        drug_feature.append(drug_fp)
+        # cell_id is at ft[2]
+        cell_id_feature = basal_csv.loc[ft[2], :]
+        final_cell_id_feature.append(_np.array(cell_id_feature, dtype=_np.float64))
+        if use_pert_idose:
+            pert_idose_feature = _np.zeros(len(pert_idose_set))
+            pert_idose_feature[pert_idose_dict[ft[3]]] = 1
+            final_pert_idose_feature.append(_np.array(pert_idose_feature, dtype=_np.float64))
+
+    feature_dict = {'drug': _np.asarray(drug_feature)}
+    feature_dict['cell_id'] = torch.from_numpy(
+        _np.asarray(final_cell_id_feature, dtype=_np.float64)).to(device)
+    if use_pert_idose:
+        feature_dict['pert_idose'] = torch.from_numpy(
+            _np.asarray(final_pert_idose_feature, dtype=_np.float64)).to(device)
+    label_regression = torch.from_numpy(label).to(device)
+    return feature_dict, label_regression, use_pert_type, use_cell_id, use_pert_idose
+
+data_utils.transform_to_tensor_per_dataset_ehill = _patched_transform_ehill
 PRECISION_DEGREE = [10, 20, 50, 100]
 
 
@@ -340,8 +391,12 @@ if __name__ == '__main__':
     # ---- WandB init --------------------------------------------------------
     USE_WANDB = True
     if USE_WANDB:
+        # WandB project cannot contain '/'; entity is set separately
+        _project = args.wandb_project.split('/')[-1] if '/' in args.wandb_project else args.wandb_project
+        _entity  = args.wandb_project.split('/')[0]  if '/' in args.wandb_project else None
         wandb.init(
-            project=args.wandb_project,
+            entity=_entity,
+            project=_project,
             group=args.wandb_group,
             config=vars(args),
             name=f'model_dose_run_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
@@ -365,11 +420,14 @@ if __name__ == '__main__':
 
     # ---- Data filter -------------------------------------------------------
     all_cells = list(pickle.load(open(args.all_cells, 'rb')))
+    # Note: data_utils.read_data() uses filter['cell_id'] to filter rows by cell line.
+    # The original ehill_multidcp_pretrain.py had 'cell_feature' (wrong key), so filtering
+    # was silently skipped there. We use the correct 'cell_id' key here.
     DATA_FILTER = {
         'time': '24H',
         'pert_id': ['BRD-U41416256', 'BRD-U60236422'],
         'pert_type': ['trt_cp'],
-        'cell_feature': all_cells,
+        'cell_id': all_cells,
         'pert_idose': ['0.04 um', '0.12 um', '0.37 um', '1.11 um', '3.33 um', '10.0 um']
     }
 
@@ -461,7 +519,7 @@ if __name__ == '__main__':
     # Update checkpoint with halt gate result
     ckpt_path = Path(args.checkpoint_path)
     if ckpt_path.exists():
-        ckpt = torch.load(str(ckpt_path), map_location='cpu')
+        ckpt = torch.load(str(ckpt_path), map_location='cpu', weights_only=False)
         ckpt['baseline_rmse'] = baseline_rmse
         ckpt['halt_gate_1_pass'] = halt_gate_1_pass
         torch.save(ckpt, str(ckpt_path))
