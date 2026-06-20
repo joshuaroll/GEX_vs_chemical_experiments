@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-20T23:14:00Z"
+last_updated: "2026-06-20T23:45:00Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,11 +28,11 @@ progress:
 ## Current Position
 
 - **Phase:** 0 — Dataset acquisition & MANIFEST (P0)
-- **Plan:** 01 COMPLETE; on to Plan 02
-- **Status:** Executing (Plan 01 done)
-- **Progress:** `[##                  ] 0/8 phases complete (P0 plan 1/4 done)`
+- **Plan:** 03 COMPLETE; on to Plan 04
+- **Status:** Executing (Plans 01 + 03 done; Plan 02 pending; Plan 04 pending)
+- **Progress:** `[####                ] 0/8 phases complete (P0 plan 2/4 done)`
 
-**Next action:** Execute Plan 02 (download driver + orthology + labels)
+**Next action:** Execute Plan 04 (MANIFEST.md + P0_orthologs.md + P0_coverage.md + squidpy)
 
 ## Performance Metrics
 
@@ -68,14 +68,22 @@ progress:
 - **Stale accessions corrected** in `src/spatial/datasets.py`: Yu→figshare 22321447, Maynard→spatialLIBD, Lake/KPMP→GSE183456+GSE183279, Siletti→snRNA-seq.
 - **Rodent basal-context candidates registered**: mouse liver (GSE272564 control arm), kidney (GSE252772), brain (GSE233983). Final healthy-spot confirmation at download (Pitfall 5).
 
+### Plan 03 decisions (locked)
+
+- **Ensembl release 116, query date 2026-06-20** — baked into raw TSV filename `orthologs_raw_116_20260620.tsv` (XC-10).
+- **92.75% dropped fraction is expected** — BioMart returns all human genes including those with no homolog; strict mutual one2one yields ~15k of ~220k rows.
+- **build_one2one_orthologs() accepts DataFrame, Path, or str** — offline testable against fixture without network.
+- **Release probe regex** fixed to match `ensembl_mart_116` format (original matched `_gene_ensembl_NN`).
+
 ### Todos / watch items
 
-- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 02 or 03.
-- `src/spatial/orthology.py` not yet created — needed for test_ortholog_one2one to pass (Plan 02).
+- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 02 or 04.
 - Download driver `scripts/download_spatial.py` not yet created (Plan 02).
-- MANIFEST.md not yet created (Plan 03).
+- MANIFEST.md not yet created (Plan 04).
+- P0_orthologs.md: paste `ortholog_report` output (15956 one2one, 92.75% dropped). Plan 04 deliverable.
+- P0_coverage.md: per-dataset coverage vs 10716 genes. Plan 04 deliverable.
 - `src/spatial/region_signature.py` holds the `NotImplementedError` seam — must be replaced with the real frozen-checkpoint call in Phase 2, not before.
-- Extend `src/spatial/` (124 passing fixture tests); do not rebuild. New files: orthology.py [P0], tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
+- Extend `src/spatial/` (127 passing fixture tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
 
 ### Blockers
 
@@ -84,5 +92,5 @@ progress:
 ## Session Continuity
 
 - **Last activity:** 2026-06-20
-- **Stopped at:** Plan 02 (00-02-PLAN.md) — ready to execute
-- **Resume with:** Execute Plan 02 (download driver, orthology.py, squidpy install, labels)
+- **Stopped at:** Plan 03 COMPLETE (00-03-SUMMARY.md written)
+- **Resume with:** Execute Plan 04 (MANIFEST.md, P0_orthologs.md, P0_coverage.md, squidpy install)
