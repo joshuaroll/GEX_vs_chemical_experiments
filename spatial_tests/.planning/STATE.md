@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-20T22:37:08.407Z"
+last_updated: "2026-06-20T23:14:00Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 25
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,11 +28,11 @@ progress:
 ## Current Position
 
 - **Phase:** 0 — Dataset acquisition & MANIFEST (P0)
-- **Plan:** none yet
-- **Status:** Ready to execute
-- **Progress:** `[                    ] 0/8 phases complete`
+- **Plan:** 01 COMPLETE; on to Plan 02
+- **Status:** Executing (Plan 01 done)
+- **Progress:** `[##                  ] 0/8 phases complete (P0 plan 1/4 done)`
 
-**Next action:** `/gsd-plan-phase 0`
+**Next action:** Execute Plan 02 (download driver + orthology + labels)
 
 ## Performance Metrics
 
@@ -61,10 +61,19 @@ progress:
 
 (Operational sign-offs handled in P0: approve adding `squidpy`/Tangram to env; sign off dataset-accession corrections before download scripts.)
 
+### Plan 01 decisions (locked)
+
+- **slug field is single source of truth** for `data/raw/spatial/<slug>/` directory. Download driver and test suite must read `entry.slug`; no independent slugification.
+- **test_raw_datasets_present** skips when RAW dir has no subdirectories (`.gitkeep` alone is not a trigger).
+- **Stale accessions corrected** in `src/spatial/datasets.py`: Yu→figshare 22321447, Maynard→spatialLIBD, Lake/KPMP→GSE183456+GSE183279, Siletti→snRNA-seq.
+- **Rodent basal-context candidates registered**: mouse liver (GSE272564 control arm), kidney (GSE252772), brain (GSE233983). Final healthy-spot confirmation at download (Pitfall 5).
+
 ### Todos / watch items
 
-- Apply corrected accessions before writing download scripts: Yu 2022 liver = Figshare 10.6084/m9.figshare.17058105 (NOT GSE189994); Lake/KPMP kidney = GSE183456 + GSE183279 (GSE211785 = Abedini 2024 substitute); Maynard DLPFC = spatialLIBD (NOT GSE144239); no public human-brain MERFISH exists.
-- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC.
+- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 02 or 03.
+- `src/spatial/orthology.py` not yet created — needed for test_ortholog_one2one to pass (Plan 02).
+- Download driver `scripts/download_spatial.py` not yet created (Plan 02).
+- MANIFEST.md not yet created (Plan 03).
 - `src/spatial/region_signature.py` holds the `NotImplementedError` seam — must be replaced with the real frozen-checkpoint call in Phase 2, not before.
 - Extend `src/spatial/` (124 passing fixture tests); do not rebuild. New files: orthology.py [P0], tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
 
@@ -75,4 +84,5 @@ progress:
 ## Session Continuity
 
 - **Last activity:** 2026-06-20
-- **Resume with:** `/gsd-plan-phase 0`
+- **Stopped at:** Plan 02 (00-02-PLAN.md) — ready to execute
+- **Resume with:** Execute Plan 02 (download driver, orthology.py, squidpy install, labels)

@@ -119,7 +119,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Dataset acquisition & MANIFEST | 0/0 | Ready to plan | - |
+| 0. Dataset acquisition & MANIFEST | 1/4 | In progress | - |
 | 1. EDA (the bracket) | 0/0 | Not started | - |
 | 2. MultiDCP wiring & toxicity head | 0/0 | Not started | - |
 | 3. Splits & no-leakage | 0/0 | Not started | - |
