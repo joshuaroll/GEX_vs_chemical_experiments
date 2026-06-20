@@ -271,7 +271,9 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         platform="Visium",
         accession="GEO: GSE200474",
         access_mechanism="geo_supp",
-        expected_files=("GSE200474_RAW.tar",),
+        # CORRECTED 2026-06-20: GSE200474 suppl has no RAW.tar; only the DESeq2 normalized
+        # expression file. Updated to the actual file present in GEO supplementary.
+        expected_files=("GSE200474_Deseq2_normalized_gene_expression_with_annotations.txt.gz",),
         license="see source",
         whole_transcriptome=True,
         slug="chen_brain_mtg",

@@ -244,15 +244,17 @@ def _build_geo_supp_url(accession: str) -> str:
     return base
 
 
+def _extract_gse_ids(raw_accession: str) -> list[str]:
+    """Extract clean GSE IDs (digits only after GSE prefix) from an accession string."""
+    import re
+    return re.findall(r"GSE\d+", raw_accession)
+
+
 def _download_geo_supp(entry, dest_dir: Path) -> None:
     """Fetch GEO supplementary files for a GSE accession."""
     # Parse the primary accession — take the first GSE ID mentioned
     raw_accession = entry.accession
-    gse_ids = [
-        tok.strip()
-        for tok in raw_accession.replace("+", " ").replace(",", " ").split()
-        if tok.startswith("GSE")
-    ]
+    gse_ids = _extract_gse_ids(raw_accession)
     if not gse_ids:
         _halt(
             f"No GSE accession found in entry accession string: {raw_accession}",
@@ -286,11 +288,7 @@ def _download_kpmp(entry, dest_dir: Path) -> None:
     """
     raw_accession = entry.accession
     # Try GSE183456 first
-    gse_ids = [
-        tok.strip()
-        for tok in raw_accession.replace("+", " ").replace(",", " ").split()
-        if tok.startswith("GSE")
-    ]
+    gse_ids = _extract_gse_ids(raw_accession)
 
     for gse_id in gse_ids:
         base_url = _build_geo_supp_url(gse_id)
@@ -335,49 +333,57 @@ def _download_spatiallibd(entry, dest_dir: Path) -> None:
 
     spatialLIBD / Bioconductor provides sample metadata and data links via
     the LieberInstitute GitHub repository. For P0 acquisition we download
-    the sample-level gene expression CSV manifest from the official repo so
-    the test suite can verify the directory is non-empty.
+    the sample-level metadata CSV from the official repo so the test suite can
+    verify the directory is non-empty.
 
     The full h5ad/SpExpr objects are large (multi-GB); for P0 we fetch a
     representative manifest file. Full objects are fetched in Plan 04 as needed
-    for the coverage gate.
+    for the coverage gate. The Maynard entry has empty expected_files so no
+    hard expected-files assertion is applied.
     """
-    # LieberInstitute GitHub: sample metadata CSV (publicly accessible)
-    sample_meta_url = (
-        "https://raw.githubusercontent.com/LieberInstitute/spatialLIBD/"
-        "master/inst/extdata/sce_layer_metadata_fields.csv"
-    )
-    # Also try the raw spatialLIBD sample sheet from the Bioconductor package
-    alt_url = (
-        "https://raw.githubusercontent.com/LieberInstitute/spatialLIBD/"
-        "master/inst/extdata/spot_level_data_fields.csv"
-    )
+    # LieberInstitute GitHub: sample metadata CSVs (verified paths via GitHub API 2026-06-20)
+    candidate_urls = [
+        (
+            "https://raw.githubusercontent.com/LieberInstitute/spatialLIBD/"
+            "master/inst/extdata/metadata_spatialLIBD.csv",
+            "metadata_spatialLIBD.csv",
+        ),
+        (
+            "https://raw.githubusercontent.com/LieberInstitute/spatialLIBD/"
+            "devel/inst/extdata/metadata_spatialLIBD.csv",
+            "metadata_spatialLIBD.csv",
+        ),
+    ]
 
-    dest_file = dest_dir / "spatialLIBD_spot_level_fields.csv"
-    if dest_file.exists() and dest_file.stat().st_size > 0:
-        log.info("spatialLIBD: Already exists, skipping: %s", dest_file)
-        return
-
-    for url in [sample_meta_url, alt_url]:
+    for url, fname in candidate_urls:
+        dest_file = dest_dir / fname
+        if dest_file.exists() and dest_file.stat().st_size > 0:
+            log.info("spatialLIBD: Already exists, skipping: %s", dest_file)
+            return
         try:
             resp = requests.head(url, timeout=30, allow_redirects=True)
             if resp.status_code == 200:
-                _stream_download(url, dest_file)
-                log.info("spatialLIBD: Successfully fetched manifest from %s", url)
-                return
+                content_type = resp.headers.get("Content-Type", "")
+                if "text/html" not in content_type:
+                    _stream_download(url, dest_file)
+                    log.info("spatialLIBD: Successfully fetched manifest from %s", url)
+                    return
+                else:
+                    log.warning("spatialLIBD: Got HTML for %s — skipping.", url)
+            else:
+                log.warning("spatialLIBD: HTTP %s for %s", resp.status_code, url)
         except requests.exceptions.RequestException as e:
             log.warning("spatialLIBD: Request failed for %s: %s", url, e)
 
-    # Both URLs failed — check if this is a hard gate (no expected_files means
-    # the entry has flexible expected content; skip gracefully)
-    if not entry.expected_files:
-        log.warning(
-            "spatialLIBD: Could not fetch manifest from GitHub. "
-            "Maynard DLPFC full objects (multi-GB) require separate download. "
-            "Directory %s created; full data acquisition pending.",
-            dest_dir,
-        )
-    else:
+    # All URLs failed — not fatal since Maynard has empty expected_files
+    # (full multi-GB objects require a dedicated manual download for Plan 04)
+    log.warning(
+        "spatialLIBD: Could not fetch metadata CSV from GitHub. "
+        "Maynard DLPFC full objects (multi-GB) require separate download. "
+        "Directory %s created; full data acquisition is Plan 04 deliverable.",
+        dest_dir,
+    )
+    if entry.expected_files:
         _halt(
             "spatialLIBD: Could not fetch required files for Maynard DLPFC",
             dataset=entry.name,
@@ -425,17 +431,25 @@ def _should_fetch(entry) -> bool:
     We fetch entries that are:
       - usable_as_input=True (basal spatial input or rodent context), OR
       - validation anchors (APAP mouse liver, usable_as_input=False but have
-        expected_files and are not annotation-only/panel datasets)
+        expected_files and are mouse whole-transcriptome Visium)
 
     We skip:
       - Fixed-panel datasets with no expected_files (annotation-only: MERFISH,
         CosMx, Xenium, snRNA-seq)
-      - Deferred organs (heart) with usable_as_input=False and no expected_files
+      - Deferred organs (heart) with usable_as_input=False — heart is explicitly
+        deferred per ROADMAP (DICTrank/heart analysis is out of scope for P0)
+      - Non-input human entries with usable_as_input=False (backup entries that
+        are not APAP validation anchors)
     """
     if entry.usable_as_input:
         return True
-    # Validation anchors: have expected_files and are not annotation-only
-    if entry.expected_files and entry.whole_transcriptome:
+    # Validation anchors: mouse APAP whole-transcriptome Visium with expected_files
+    if (
+        entry.species == "mouse"
+        and entry.expected_files
+        and entry.whole_transcriptome
+        and not entry.usable_as_input
+    ):
         return True
     return False
 
