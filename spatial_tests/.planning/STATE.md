@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-20T23:45:00Z"
+last_updated: "2026-06-20T23:48:00Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,9 +28,9 @@ progress:
 ## Current Position
 
 - **Phase:** 0 — Dataset acquisition & MANIFEST (P0)
-- **Plan:** 03 COMPLETE; on to Plan 04
-- **Status:** Executing (Plans 01 + 03 done; Plan 02 pending; Plan 04 pending)
-- **Progress:** `[####                ] 0/8 phases complete (P0 plan 2/4 done)`
+- **Plan:** 02 COMPLETE; on to Plan 04 (final plan in P0)
+- **Status:** Executing (Plans 01 + 02 + 03 done; Plan 04 pending)
+- **Progress:** `[######              ] 0/8 phases complete (P0 plan 3/4 done)`
 
 **Next action:** Execute Plan 04 (MANIFEST.md + P0_orthologs.md + P0_coverage.md + squidpy)
 
@@ -75,15 +75,24 @@ progress:
 - **build_one2one_orthologs() accepts DataFrame, Path, or str** — offline testable against fixture without network.
 - **Release probe regex** fixed to match `ensembl_mart_116` format (original matched `_gene_ensembl_NN`).
 
+### Plan 02 decisions (locked)
+
+- **P0 brain toxicity labels = SIDER meddra_all_se.tsv.gz (SOC filter at use-time)**; Lane-Ekins seizure and DNT-IVB DEFERRED to Phase 1.
+- **DIRIL kidney supplement TODO note written** (Elsevier journal gate 404); kidney labels must be resolved before Phase 4. Never fabricated (XC-01).
+- **DILIst/DILIrank acquired via sibling SHA-copy** (FDA bot protection blocked network; sibling has SHA-verified copies; data is real).
+- **Figshare MD5 verification**: both Yu liver files (L5/L18) passed MD5 check.
+- **13 spatial datasets downloaded**; KPMP GEO supplementary (4.87 GB) succeeded; KPMP portal ToS was not needed.
+- **chen_brain_mtg expected_files corrected** in registry: was `GSE200474_RAW.tar` (404), now `GSE200474_Deseq2_...txt.gz` (actual GEO suppl file).
+
 ### Todos / watch items
 
-- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 02 or 04.
-- Download driver `scripts/download_spatial.py` not yet created (Plan 02).
+- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 04.
 - MANIFEST.md not yet created (Plan 04).
 - P0_orthologs.md: paste `ortholog_report` output (15956 one2one, 92.75% dropped). Plan 04 deliverable.
 - P0_coverage.md: per-dataset coverage vs 10716 genes. Plan 04 deliverable.
+- DIRIL kidney labels: resolve supplement URL before Phase 4 (see data/raw/labels/diril/DIRIL_TODO.txt).
 - `src/spatial/region_signature.py` holds the `NotImplementedError` seam — must be replaced with the real frozen-checkpoint call in Phase 2, not before.
-- Extend `src/spatial/` (127 passing fixture tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
+- Extend `src/spatial/` (128 passing fixture tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
 
 ### Blockers
 
@@ -92,5 +101,5 @@ progress:
 ## Session Continuity
 
 - **Last activity:** 2026-06-20
-- **Stopped at:** Plan 03 COMPLETE (00-03-SUMMARY.md written)
+- **Stopped at:** Plan 02 COMPLETE (00-02-SUMMARY.md written; 13 datasets + labels on disk)
 - **Resume with:** Execute Plan 04 (MANIFEST.md, P0_orthologs.md, P0_coverage.md, squidpy install)
