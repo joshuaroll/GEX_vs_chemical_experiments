@@ -153,7 +153,9 @@ def test_raw_datasets_present() -> None:
     # (.gitkeep is not a dataset directory)
     if not RAW.exists():
         pytest.skip("downloads not present; run with TDC_NETWORK_TESTS=1")
-    dataset_dirs = [p for p in RAW.iterdir() if p.is_dir()]
+    # Check for directories whose names match registry slugs (not auxiliary dirs like biomart/).
+    all_slugs = {d.slug for d in SPATIAL_DATASETS}
+    dataset_dirs = [p for p in RAW.iterdir() if p.is_dir() and p.name in all_slugs]
     if not dataset_dirs:
         pytest.skip("downloads not present; run with TDC_NETWORK_TESTS=1")
 
