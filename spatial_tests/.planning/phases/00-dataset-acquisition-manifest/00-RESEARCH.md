@@ -161,6 +161,7 @@ class SpatialDataset(NamedTuple):
     whole_transcriptome: bool     # NEW: the Halt-Gate-1 flag
     usable_as_input: bool
     region_annotation_source: str
+    slug: str                     # NEW: canonical lowercase data/raw/spatial/<slug> dir name (single source of truth)
 ```
 
 ### Pattern 2: BioMart one2one ortholog query via raw REST (no new deps)
@@ -209,6 +210,7 @@ assert cov > 0.80, f"Halt Gate 1: {name} covers only {cov:.1%} of the 10,716 spa
 - **Symbol-based coverage without normalization:** ~44 of 978 L1000 landmarks are obsolete HGNC aliases; do a one-time symbol normalization (alias→approved) at gene-list comparison time or coverage is understated (`[CITED: CON-gene-space]`).
 - **Putting network I/O inside `src/spatial/` pure functions:** existing modules (gene_alignment.py) are explicitly pure with "NO hardcoded absolute paths." Keep fetch logic in `scripts/` and behind a cached-TSV boundary in `orthology.py`.
 - **Letting drug-treated spots into a basal profile:** APAP series (GSE280652/GSE272564) are validation-only, never basal context (`[CITED: §7 no-leakage]`).
+- **Two independent slugifications:** the download driver and the data-path test must NOT each compute their own directory name from `name`. Use the single `slug` field on `SpatialDataset` as the one source of truth for `data/raw/spatial/<slug>/` so a rename can never desynchronize them.
 
 ## Don't Hand-Roll
 
@@ -345,30 +347,35 @@ RODENT SPATIAL (basal input — candidates to select+verify healthy spots in thi
 | A5 | DIRIL / DICTrank / DNT-IVB / Lane-Ekins seizure label sets are obtainable from their publications' supplements | Open Questions | Medium — supplement download mechanics vary; DICTrank (heart) is deferred so lower urgency |
 | A6 | A symbol-normalization step recovers the ~44 obsolete L1000 aliases | Pitfall 4 | Low — well-characterized, ~0.5% of landmarks |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which exact rodent-spatial series per organ?**
    - What we know: whole-transcriptome rodent Visium exists abundantly (mouse GPL24247: liver≈74, kidney≈24, brain≈104; rat GPL25947≈69 series) `[VERIFIED: NCBI GEO]`.
    - What's unclear: which series have clean *healthy/control* spots usable as basal context, and whether to prefer one atlas per organ vs. control arms of disease studies.
    - Recommendation: planner picks one primary healthy series per organ (candidates: liver = a zonation/control series; kidney = GSE252772 lifespan atlas; brain = GSE233983 aging atlas), inspects sample metadata for control spots, and records the chosen basal samples in MANIFEST. Verify whole-transcriptome via coverage gate.
+   - **RESOLVED:** Candidate healthy whole-transcriptome series per organ are recorded in the `datasets.py` registry notes (Plan 01 — rodent basal-context Visium entries: mouse liver GSE272564-control arm, mouse kidney GSE252772, mouse brain GSE233983). The final per-organ pick is confirmed at download time by inspecting sample metadata for control spots (Pitfall 5); it is a planning/download decision, **not** a Gate-1 blocker.
 
 2. **KPMP kidney access mechanism.**
    - What we know: atlas.kpmp.org returns 200; GSE183456/GSE183279 are on GEO.
    - What's unclear: whether the analysis-ready Visium objects come cleanest from GEO supplementary or the KPMP portal (portal may require ToS click-through).
    - Recommendation: prefer GEO supplementary (no auth); fall back to KPMP portal; if portal needs login, flag as human-action per XC-01.
+   - **RESOLVED:** Primary access = GSE183456 + GSE183279 via GEO supplementary (no auth, `access_mechanism="geo_supp"`/`"kpmp"`). atlas.kpmp.org is the `user_setup`/manual-action click-through ToS fallback gate in Plan 02 (Task 1 `kpmp` dispatch + the Plan 02 `user_setup` entry).
 
 3. **Exact 10,716-gene MultiDCP symbol list file.**
    - What we know: `geneinfo_beta.txt` and `pdg_de_genes_per_cell_top20_40_80.pkl` exist locally `[VERIFIED: filesystem]`.
    - What's unclear: which file is the canonical 10,716 ordering CheMoE outputs.
    - Recommendation: locate+pin the canonical list in MANIFEST during P0 (needed for the coverage report); cross-check count == 10,716.
+   - **RESOLVED:** Located/loaded in Plan 04 Task 1 — the executor checks `geneinfo_beta.txt` / `pdg_de_genes_*.pkl` in the MultiDCP/PDGrapher repo, asserts `len(symbols) == 10716` (== `N_PDG`), and records the exact chosen source file path in MANIFEST. The pin is a Plan 04 deliverable, not a Gate-1 blocker.
 
 4. **Brain/kidney/heart human label-set download mechanics.**
    - What we know: SIDER (sideeffects.embl.de) returns 200; DILIst/DILIrank are FDA Excel (sibling MANIFEST has direct URLs+SHAs).
    - What's unclear: DIRIL (Connor 2024 Drug Discov Today supplement), DNT-IVB, Lane-Ekins seizure exact file URLs.
    - Recommendation: resolve each from its paper supplement during P0; DICTrank (heart) is deferred so lowest priority.
+   - **PARTIALLY RESOLVED / ACCEPTED-OPEN:** Recorded as an explicit DECISION in Plan 02 Task 2 — **P0 brain toxicity labels = SIDER nervous-system SOC (serious terms) ONLY.** Lane-Ekins seizure and DNT-IVB are DEFERRED to Phase 1 (brain is the last organ sequenced: liver → kidney → brain). DIRIL (kidney) supplement URL is resolved at download time; if unresolved, the driver writes a TODO line into the HALT_REASON candidates note — **never fabricate labels** (XC-01). Liver (DILIst/DILIrank) labels resolve from the sibling MANIFEST direct URLs. DICTrank (heart) is deferred per ROADMAP.
 
 5. **Test file location (`tests/test_data_paths.py` vs `tests/spatial/`).**
    - Recommendation: create flat `tests/test_data_paths.py` per the acceptance-criterion wording; confirm at planning.
+   - **RESOLVED:** Flat `tests/test_data_paths.py` (Plan 01 Task 2), per the DATA-01 acceptance wording and the sibling `dili_downstream` convention; the 124 existing `tests/spatial/` tests are left untouched.
 
 ## Environment Availability
 
@@ -495,12 +502,12 @@ RODENT SPATIAL (basal input — candidates to select+verify healthy spots in thi
 | Pitfalls | HIGH | two real stale-accession bugs found and verified |
 | Rodent-spatial selection | MEDIUM | pools verified; per-organ healthy-spot pick deferred to planning |
 
-### Open Questions
-- Final rodent-spatial series per organ (healthy-spot verification needed)
-- KPMP access mechanism (GEO suppl vs portal click-through)
-- Canonical 10,716-gene symbol-list file to pin
-- Exact supplement URLs for DIRIL / DNT-IVB / Lane-Ekins seizure label sets
-- `tests/test_data_paths.py` flat vs `tests/spatial/` location
+### Open Questions (RESOLVED — see § Open Questions (RESOLVED) above)
+- Final rodent-spatial series per organ — RESOLVED (registry candidates recorded; final pick at download, not a Gate-1 blocker)
+- KPMP access mechanism — RESOLVED (GEO supplementary primary; atlas.kpmp.org ToS click-through = user_setup fallback)
+- Canonical 10,716-gene symbol-list file to pin — RESOLVED (located/pinned in Plan 04 Task 1)
+- Exact supplement URLs for DIRIL / DNT-IVB / Lane-Ekins seizure label sets — PARTIALLY RESOLVED / ACCEPTED-OPEN (P0 brain = SIDER SOC only; seizure/DNT-IVB deferred to P1; DIRIL resolved-or-TODO, never fabricated)
+- `tests/test_data_paths.py` flat vs `tests/spatial/` location — RESOLVED (flat `tests/test_data_paths.py`)
 
 ### Ready for Planning
 Research complete. Planner can create PLAN.md: correct the registry accessions first, build registry→driver downloads, implement `orthology.py` on BioMart REST, install squidpy, write MANIFEST + `tests/test_data_paths.py`, and gate every input on the whole-transcriptome coverage check (Halt Gate 1).
