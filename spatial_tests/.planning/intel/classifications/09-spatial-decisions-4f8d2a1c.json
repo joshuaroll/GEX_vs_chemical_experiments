@@ -1,0 +1,28 @@
+{
+  "source_path": "/raid/home/joshua/projects/0_project_documents/downstream_tasks/09_spatial_decisions.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Spatial Transcriptomics Integration — Decisions",
+  "summary": "Lead-researcher decision log resolving five open questions and three feasibility constraints for the spatial-transcriptomics arm, plus data plan and dataset-accession corrections.",
+  "scope": [
+    "spatial transcriptomics arm",
+    "Visium / MERFISH / Xenium / CosMx platform selection",
+    "region annotations and zonation",
+    "MultiDCP cell-context OOD risk",
+    "spatial Halt Gate",
+    "APAP single-drug Visium validation benchmark",
+    "indirect validity plan",
+    "liver / kidney / brain / heart datasets",
+    "DE-rule divergence for spatial arm",
+    "dataset-reference corrections"
+  ],
+  "cross_refs": [
+    "08_spatial_transcriptomics_integration.md",
+    "spatial_transcriptomics_healthy_datasets.md",
+    "GEX_vs_chemical_experiments/spatial_tests/"
+  ],
+  "locked": false,
+  "precedence": 2,
+  "notes": "Manifest declared DOC; honored as authoritative. Content is a decision log / design rationale (prose + a data-plan table), consistent with DOC despite per-question 'Decision' headers — these are project-scope and feasibility resolutions, not locked architectural ADRs (the doc explicitly states several items still need professor sign-off). Cross_refs recorded as-written (filenames/paths mentioned in the Inputs and Code-home headers)."
+}

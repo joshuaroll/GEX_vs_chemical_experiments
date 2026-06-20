@@ -1,0 +1,9 @@
+{
+  "project": "Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)",
+  "root": "/raid/home/joshua/projects/GEX_vs_chemical_experiments/spatial_tests",
+  "mode": "yolo",
+  "parallelization": true,
+  "granularity": "coarse",
+  "phase_numbering": "integer",
+  "first_phase": 0
+}

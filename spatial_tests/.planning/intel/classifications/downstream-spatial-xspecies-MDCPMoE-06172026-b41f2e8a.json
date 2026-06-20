@@ -1,0 +1,29 @@
+{
+  "source_path": "/raid/home/joshua/projects/0_project_documents/downstream_spatial_xspecies_MDCPMoE_06172026.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GSD Design: Spatial, Cross-Species Toxicity Prediction with MultiDCP",
+  "summary": "Source-of-truth design spec for a spatial, cross-species (rodent-to-human) drug-toxicity prediction arm using frozen MultiDCP/MultiDCP-CheMoE, with a P0-P7 phase roadmap.",
+  "scope": [
+    "MultiDCP / MultiDCP-CheMoE baseline model",
+    "spatial transcriptomics region signatures",
+    "cross-species rodent-to-human translatability",
+    "downstream organ-toxicity concat-MLP head",
+    "region attention pooling / combiner",
+    "ortholog alignment (human/mouse/rat)",
+    "DE region signatures",
+    "compound-aware scaffold/cluster splits",
+    "CheMoE routing-permutation diagnostic",
+    "spatial_tests code module (src/spatial/)"
+  ],
+  "cross_refs": [
+    "downstream_tasks/06_three_channel_pipeline.md",
+    "08_spatial_transcriptomics_integration.md",
+    "09_spatial_decisions.md",
+    "downstream_MDCPMoE_05052026.md"
+  ],
+  "locked": false,
+  "precedence": 0,
+  "notes": "Type set from MANIFEST_TYPE=SPEC (authoritative). Content independently supports SPEC: implementation contracts (model I/O dims, channel-to-projection map, NotImplementedError seams, ortholog discipline) plus PRD-like phases/halt-gates/success-criteria. SPEC wins on precedence. Precedence overridden to 0 from MANIFEST_PRECEDENCE."
+}
