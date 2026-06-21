@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-20T23:48:00Z"
-last_activity: 2026-06-20
+last_updated: "2026-06-21T00:10:00Z"
+last_activity: 2026-06-21
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -27,12 +27,12 @@ progress:
 
 ## Current Position
 
-- **Phase:** 0 — Dataset acquisition & MANIFEST (P0)
-- **Plan:** 02 COMPLETE; on to Plan 04 (final plan in P0)
-- **Status:** Executing (Plans 01 + 02 + 03 done; Plan 04 pending)
-- **Progress:** `[######              ] 0/8 phases complete (P0 plan 3/4 done)`
+- **Phase:** 0 — Dataset acquisition & MANIFEST (P0) — **COMPLETE**
+- **Plan:** 04 COMPLETE (final plan in P0)
+- **Status:** Phase 0 done; proceed to Phase 1 (EDA — the bracket)
+- **Progress:** `[##########          ] 1/8 phases complete (P0 all 4/4 plans done)`
 
-**Next action:** Execute Plan 04 (MANIFEST.md + P0_orthologs.md + P0_coverage.md + squidpy)
+**Next action:** Begin Phase 1 EDA (/gsd-plan-phase 1 or similar)
 
 ## Performance Metrics
 
@@ -68,6 +68,14 @@ progress:
 - **Stale accessions corrected** in `src/spatial/datasets.py`: Yu→figshare 22321447, Maynard→spatialLIBD, Lake/KPMP→GSE183456+GSE183279, Siletti→snRNA-seq.
 - **Rodent basal-context candidates registered**: mouse liver (GSE272564 control arm), kidney (GSE252772), brain (GSE233983). Final healthy-spot confirmation at download (Pitfall 5).
 
+### Plan 04 decisions (locked)
+
+- **MultiDCP 10716-gene symbol list** sourced from `pdg_diseased_brddrugfiltered_avg_over_celltype_10x10717.csv` column names (verified len==10716, N_PDG confirmed).
+- **Rodent coverage gate** = n_genes > 10000 (not human-symbol match); mouse/rat gene symbols differ; cross-species alignment is Phase 2 ortholog map.
+- **Halt Gate 1: NOT FIRED** — human basal Visium >99% coverage; rodent datasets 32245 genes.
+- **MANIFEST.md complete**: SHA256+license+Whole-transcriptome for all 13 datasets; both frozen-checkpoint SHAs; env snapshot with squidpy 1.8.2.
+- **Phase 0 phase complete** — all DATA-01/02/03 requirements met; 132 tests pass.
+
 ### Plan 03 decisions (locked)
 
 - **Ensembl release 116, query date 2026-06-20** — baked into raw TSV filename `orthologs_raw_116_20260620.tsv` (XC-10).
@@ -86,13 +94,11 @@ progress:
 
 ### Todos / watch items
 
-- `squidpy` not yet installed in `dili_v04_env`; required for Moran's I spatial-QC. Install in Plan 04.
-- MANIFEST.md not yet created (Plan 04).
-- P0_orthologs.md: paste `ortholog_report` output (15956 one2one, 92.75% dropped). Plan 04 deliverable.
-- P0_coverage.md: per-dataset coverage vs 10716 genes. Plan 04 deliverable.
 - DIRIL kidney labels: resolve supplement URL before Phase 4 (see data/raw/labels/diril/DIRIL_TODO.txt).
 - `src/spatial/region_signature.py` holds the `NotImplementedError` seam — must be replaced with the real frozen-checkpoint call in Phase 2, not before.
-- Extend `src/spatial/` (128 passing fixture tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
+- Extend `src/spatial/` (132 passing tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
+- 5 datasets with non-standard archive formats (no feature matrix accessible): abedini_kidney, canela_kidney, maynard_dlpfc, chen_brain_mtg, kanemaru_heart. Whole-transcriptome flag confirmed by registry; gene-count confirmation via extraction at Phase 1.
+- gse252772_mouse_kidney: R .rds.gz files only — no Python-readable feature matrix without conversion. Needs `rpy2` or `anndata2ri` at Phase 1.
 
 ### Blockers
 
@@ -100,6 +106,6 @@ progress:
 
 ## Session Continuity
 
-- **Last activity:** 2026-06-20
-- **Stopped at:** Plan 02 COMPLETE (00-02-SUMMARY.md written; 13 datasets + labels on disk)
-- **Resume with:** Execute Plan 04 (MANIFEST.md, P0_orthologs.md, P0_coverage.md, squidpy install)
+- **Last activity:** 2026-06-21
+- **Stopped at:** Plan 04 COMPLETE — Phase 0 complete (MANIFEST.md, P0_coverage.md, P0_orthologs.md, squidpy 1.8.2 installed; 132 tests pass)
+- **Resume with:** Phase 1 EDA — /gsd-plan-phase 1
