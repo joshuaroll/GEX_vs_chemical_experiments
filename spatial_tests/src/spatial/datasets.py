@@ -312,6 +312,32 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
     # HEART — human (deferred; DEC-per-organ-only: heart is last)
     # =====================================================================
     SpatialDataset(
+        name="Kuppe et al. 2022 — Spatial multi-omic map of human myocardial infarction (control + remote myocardium)",
+        organ="heart",
+        species="human",
+        platform="Visium",
+        # ADDED 2026-06-21: public, CC-BY-4.0 alternative to the EGA-gated Kanemaru atlas.
+        # Zenodo 6578047 ships per-section .h5ad. The 4 CONTROL (non-transplanted donor
+        # heart) sections are the basal-region input; the 4 RZ (remote, non-affected
+        # myocardium) sections are also non-diseased. Acquired + verified 2026-06-21:
+        # control P1 = 4269 spots x 15730 genes, obsm['X_spatial'] present, cell-type
+        # deconvolution in obs. Heart is DEFERRED per ROADMAP, so usable_as_input=False
+        # for now (data is on disk + content-verified; flip to True to activate heart).
+        accession="Zenodo: 10.5281/zenodo.6578047; Nature 2022 (s41586-022-05060-x); CZ CELLxGENE",
+        access_mechanism="url",
+        expected_files=(
+            "Visium_control_P1.h5ad",
+            "Visium_control_P7.h5ad",
+            "Visium_control_P8.h5ad",
+            "Visium_control_P17.h5ad",
+        ),
+        license="CC BY 4.0",
+        whole_transcriptome=True,
+        slug="kuppe_heart",
+        usable_as_input=False,
+        region_annotation_source="author-provided (cell-type deconvolution + CELLxGENE ontology in obs)",
+    ),
+    SpatialDataset(
         name="Kanemaru et al. 2023 — Spatially Resolved Multiomics of Human Cardiac Niches",
         organ="heart",
         species="human",

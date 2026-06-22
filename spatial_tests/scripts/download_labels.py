@@ -7,7 +7,8 @@ Downloads per-organ toxicity label sets into data/raw/labels/<set>/:
   - brain: SIDER (sideeffects.embl.de) meddra_all_se.tsv.gz ONLY — nervous-system
     SOC (serious terms) filtered at use time; seizure/DNT-IVB are explicitly NOT
     fetched in P0 (DEFERRED to Phase 1 per plan DECISION below)
-  - heart: DICTrank is DEFERRED per ROADMAP — skip with a logged note, not a download
+  - heart: DICTrank fetched from the FDA (heart DEFERRED per ROADMAP, but the label
+    set is acquired now for readiness; non-fatal on failure)
 
 DECISION (recorded per Plan 02 Task 2):
   P0 brain toxicity labels = SIDER nervous-system SOC (serious terms) ONLY.
@@ -94,6 +95,15 @@ DIRIL_CANDIDATE_URLS = [
     "https://www.fda.gov/media/178824/download?attachment",  # FDA diril_dataset_508.xlsx (primary)
     "https://ars.els-cdn.com/content/image/1-s2.0-S1359644624000631-mmc1.xlsx",  # Elsevier suppl (fallback)
 ]
+
+# Browser User-Agent — FDA /media endpoints reject the default python-requests UA.
+_HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"}
+
+# DICTrank (Qu et al. 2023, Drug Discov Today 28(11)) — heart cardiotoxicity label set.
+# FDA-hosted (public): 1318 drugs ranked into most/less/no/ambiguous DICT-concern.
+# Heart is DEFERRED per ROADMAP, but the set is small + the source stable, so it is
+# acquired now so it is ready when heart is activated.
+DICTRANK_URL = "https://www.fda.gov/media/178811/download?attachment"  # dictrank_dataset_508.xlsx
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +277,7 @@ def download_kidney_labels() -> None:
     for url in DIRIL_CANDIDATE_URLS:
         log.info("DIRIL: Attempting: %s", url)
         try:
-            resp = requests.head(url, timeout=30, allow_redirects=True)
+            resp = requests.head(url, timeout=30, allow_redirects=True, headers=_HEADERS)
             if resp.status_code != 200:
                 log.warning("DIRIL: %s returned HTTP %s — skipping.", url, resp.status_code)
                 continue
@@ -314,7 +324,9 @@ def _stream_download_non_fatal(url: str, dest: Path, *, timeout: int = 120) -> N
     Used for DIRIL where failure is non-fatal per plan DECISION.
     """
     try:
-        resp = requests.get(url, stream=True, timeout=timeout, allow_redirects=True)
+        resp = requests.get(
+            url, stream=True, timeout=timeout, allow_redirects=True, headers=_HEADERS
+        )
         if resp.status_code != 200:
             return
         content_type = resp.headers.get("Content-Type", "")
@@ -385,14 +397,39 @@ def download_brain_labels() -> None:
 
 
 def download_heart_labels() -> None:
-    """Heart labels (DICTrank) are DEFERRED per ROADMAP.
+    """Acquire DICTrank (heart cardiotoxicity labels) from the FDA.
 
-    Log a note — no download attempted.
+    Heart is DEFERRED per ROADMAP (last organ in the pipeline), so failure here is
+    NON-FATAL (logged, never halts the run). The FDA hosts DICTrank publicly
+    (Qu et al. 2023, Drug Discov Today 28(11)): 1318 drugs ranked into
+    most/less/no/ambiguous DICT-concern. Acquired now for readiness. Idempotent:
+    skips if already on disk. Never fabricates labels (XC-01).
     """
-    log.info(
-        "Heart labels (DICTrank): DEFERRED per ROADMAP — "
-        "heart organ is the last in the per-organ pipeline. No download attempted in P0."
-    )
+    dict_dir = DATA_RAW_LABELS / "dictrank"
+    dict_dir.mkdir(parents=True, exist_ok=True)
+    dest = dict_dir / "dictrank_dataset_508.xlsx"
+    if dest.exists() and dest.stat().st_size > 0:
+        log.info("DICTrank already on disk: %s", dest)
+        return
+
+    log.info("DICTrank: Attempting FDA source: %s", DICTRANK_URL)
+    try:
+        resp = requests.head(DICTRANK_URL, timeout=30, allow_redirects=True, headers=_HEADERS)
+        if resp.status_code == 200 and "text/html" not in resp.headers.get("Content-Type", ""):
+            _stream_download_non_fatal(DICTRANK_URL, dest)
+            if dest.exists() and dest.stat().st_size > 0:
+                log.info(
+                    "DICTrank: Downloaded successfully (heart DEFERRED per ROADMAP; "
+                    "label set staged for activation)."
+                )
+                return
+        log.warning(
+            "DICTrank: FDA source returned HTTP %s / unexpected type — skipping "
+            "(heart deferred; non-fatal).",
+            resp.status_code,
+        )
+    except requests.exceptions.RequestException as e:
+        log.warning("DICTrank: request failed: %s (heart deferred; non-fatal).", e)
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +454,7 @@ def main() -> None:
     download_brain_labels()
 
     # Heart labels (DICTrank deferred per ROADMAP)
-    log.info("=== Heart labels (DICTrank — DEFERRED per ROADMAP) ===")
+    log.info("=== Heart labels (DICTrank — FDA; heart deferred, acquired for readiness) ===")
     download_heart_labels()
 
     log.info("Per-organ toxicity label-set downloads complete.")
