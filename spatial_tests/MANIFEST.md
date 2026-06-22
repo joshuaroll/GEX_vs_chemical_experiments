@@ -62,7 +62,7 @@ inside the spatial arm**. Update it at the end of every phase. The data-path tes
 | DILIst | `data/raw/labels/dilist/dilist.xlsx` | `4331ee9d16ae7641488161e4dc2c603c29e06baa8667dd16e7f3d635366e7e5e` | FDA NCTR LTKB | FDA (public) | 1279 drugs × binary DILI; SHA-verified copy from sibling dili_downstream |
 | DILIrank 2.0 | `data/raw/labels/dilirank/dilirank.xlsx` | `1ca1352ff727af68e68e250eae2ed775bca8492335140ac0afd2233248694993` | FDA NCTR LTKB | FDA (public) | 1337 drugs × severity; SHA-verified copy from sibling dili_downstream |
 | SIDER meddra_all_se | `data/raw/labels/sider/meddra_all_se.tsv.gz` | `119b2f5319a9398da83e5fe3419889010dbacf8d3eef590251b00c025e2b3f99` | SIDER 4.1 (embl.de) | see source | Brain SOC label source; SOC filter applied at use-time (Phase 1) |
-| DIRIL TODO | `data/raw/labels/diril/DIRIL_TODO.txt` | `9b64caa15d83c036c83ad39f10ff10c62b5e16a192a7880851adc424145341e6` | N/A | N/A | Kidney label placeholder; journal-gated supplement (Elsevier 404); resolve before Phase 4 |
+| DIRIL | `data/raw/labels/diril/diril_dataset_508.xlsx` | `602edfda3da6b62bb52f8a88cd8fff5783f0635608dd0f2b0eb44299195b50dc` | FDA (Drug-Induced Renal Injury List); Connor et al., Drug Discov Today 29(4) 2024 | FDA (public) | Kidney nephrotoxicity labels; sheet "A. DIRIL (317)", 317 drugs × binary DIRI (My Findings: 171 Nephrotoxic / 146 Non-Nephrotoxic, no NaN), all with SMILES. RESOLVED 2026-06-21 from FDA (prior Elsevier-CDN candidate 404'd). |
 
 ### Ortholog map (processed, gitignored)
 

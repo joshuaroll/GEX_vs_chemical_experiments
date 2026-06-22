@@ -84,14 +84,15 @@ DILIRANK_SIBLING = _SIBLING_ROOT / "data" / "raw" / "DILIrank" / "dilirank.xlsx"
 SIDER_MEDDRA_ALL_SE_URL = "http://sideeffects.embl.de/media/download/meddra_all_se.tsv.gz"
 SIDER_MEDDRA_FREQ_URL = "http://sideeffects.embl.de/media/download/meddra_freq_parsed.tsv.gz"
 
-# DIRIL (Connor 2024 Drug Discov Today) — kidney nephrotoxicity label set
-# The exact supplement URL is attempted at download time; if it 404s, we
-# log a TODO note rather than halt (the URL may require journal-gate lookup).
+# DIRIL (Connor et al. 2024, Drug Discov Today 29(4)) — kidney nephrotoxicity label set.
+# RESOLVED 2026-06-21: the FDA hosts DIRIL directly (gold source, public, no journal
+# gate). The prior Elsevier-CDN candidate had the wrong article S-number and 404'd.
+# FDA "Drug-Induced Renal Injury List (DIRIL) Dataset": diril_dataset_508.xlsx,
+# sheet "A. DIRIL (317)" — 317 drugs with SMILES + binary DIRI label
+# ("My Findings (Toxicity)": 171 Nephrotoxic / 146 Non-Nephrotoxic, no NaN).
 DIRIL_CANDIDATE_URLS = [
-    # Connor 2024 Drug Discov Today supplement DOI / direct links — to be resolved
-    # If neither resolves, a TODO note is written per the plan DECISION.
-    "https://ars.els-cdn.com/content/image/1-s2.0-S1359644623003495-mmc1.xlsx",
-    "https://doi.org/10.1016/j.drudis.2023.103771",  # paper DOI (may redirect to HTML)
+    "https://www.fda.gov/media/178824/download?attachment",  # FDA diril_dataset_508.xlsx (primary)
+    "https://ars.els-cdn.com/content/image/1-s2.0-S1359644624000631-mmc1.xlsx",  # Elsevier suppl (fallback)
 ]
 
 
@@ -257,16 +258,13 @@ def download_kidney_labels() -> None:
     diril_dir.mkdir(parents=True, exist_ok=True)
 
     todo_note_path = diril_dir / "DIRIL_TODO.txt"
-    if todo_note_path.exists():
-        log.info("DIRIL TODO note already exists; skipping retry.")
+    dest = diril_dir / "diril_dataset_508.xlsx"
+    if dest.exists() and dest.stat().st_size > 0:
+        log.info("DIRIL already on disk: %s", dest)
+        todo_note_path.unlink(missing_ok=True)  # clear any stale TODO once resolved
         return
 
     for url in DIRIL_CANDIDATE_URLS:
-        dest = diril_dir / "diril_supplement.xlsx"
-        if dest.exists() and dest.stat().st_size > 0:
-            log.info("DIRIL already on disk: %s", dest)
-            return
-
         log.info("DIRIL: Attempting: %s", url)
         try:
             resp = requests.head(url, timeout=30, allow_redirects=True)
@@ -281,6 +279,7 @@ def download_kidney_labels() -> None:
             _stream_download_non_fatal(url, dest)
             if dest.exists() and dest.stat().st_size > 0:
                 log.info("DIRIL: Downloaded successfully from %s", url)
+                todo_note_path.unlink(missing_ok=True)  # resolved — remove stale TODO
                 return
         except requests.exceptions.RequestException as e:
             log.warning("DIRIL: Request failed for %s: %s", url, e)
@@ -301,10 +300,10 @@ def download_kidney_labels() -> None:
             fh.write(f"  - {u}\n")
         fh.write(
             "\nAction required before Phase 4 kidney analysis:\n"
-            "  1. Locate the DIRIL supplement from: Connor C et al., Drug Discov Today, 2024\n"
-            "     (DOI: 10.1016/j.drudis.2023.103771)\n"
-            "  2. Download the supplementary data file and place it at:\n"
-            "     data/raw/labels/diril/diril_supplement.xlsx\n"
+            "  1. DIRIL is hosted by the FDA: 'Drug-Induced Renal Injury List (DIRIL) Dataset'\n"
+            "     (file diril_dataset_508.xlsx). Connor S et al., Drug Discov Today 29(4), 2024.\n"
+            "  2. Download the dataset and place it at:\n"
+            "     data/raw/labels/diril/diril_dataset_508.xlsx\n"
             "  3. Never fabricate kidney labels (XC-01).\n"
         )
 

@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 00-dataset-acquisition-manifest
 source: [00-VERIFICATION.md]
 started: 2026-06-21T00:26:01Z
@@ -14,7 +14,7 @@ updated: 2026-06-21T00:26:01Z
 
 ### 1. maynard_dlpfc partial download
 expected: Full Maynard DLPFC Visium objects on disk, OR explicit acceptance that only the 2.6 KB metadata CSV is needed for P0. Entry is `usable_as_input=True` with `expected_files=()`, so no assertion fired. Decide: accepted P0 partial, or pull full objects before Phase 1.
-result: [pending]
+result: RESOLVED 2026-06-21 (soft-entry audit) — demoted to usable_as_input=False; only metadata on disk, and chen_brain_mtg (GSE220442) is now the verified human brain Visium input, so Maynard is not needed as a P0 input. Promote + fetch full spatialLIBD objects later if a second cortical reference is wanted. See the soft-entry audit in the Gaps section below.
 
 ### 2. chen_brain_mtg DE-results-only
 expected: Confirm whether the DESeq2 normalized expression .txt.gz (15 MB) serves Phase 1, or whether the raw Visium feature matrix must be located. Entry is `usable_as_input=True`, `whole_transcriptome=True`.
@@ -22,7 +22,7 @@ result: RESOLVED 2026-06-21 — root cause was a WRONG-ACCESSION error, not a pa
 
 ### 3. DIRIL kidney labels TODO
 expected: DIRIL kidney toxicity labels acquired, OR accepted as a recorded gap. Currently `data/raw/labels/diril/DIRIL_TODO.txt` exists; labels were not fetched (journal-gated Elsevier CDN). REQUIREMENTS.md DATA-01 lists DIRIL as required.
-result: [pending]
+result: RESOLVED 2026-06-21 — ACQUIRED from the FDA, the gold public source (not journal-gated). Root cause of the prior failure: the driver's Elsevier-CDN candidate used the wrong article S-number (S1359644623003495). FDA hosts "Drug-Induced Renal Injury List (DIRIL) Dataset" = diril_dataset_508.xlsx (21.4 MB, sha256 602edfda...), sheet "A. DIRIL (317)": 317 drugs with SMILES + binary DIRI label ("My Findings (Toxicity)": 171 Nephrotoxic / 146 Non-Nephrotoxic, zero NaN). On disk at data/raw/labels/diril/diril_dataset_508.xlsx; DIRIL_TODO.txt removed. download_labels.py updated (FDA URL primary, correct dest filename, clears stale TODO, success on re-run). MANIFEST row updated. DATA-01 kidney label requirement now satisfied.
 
 ### 4. Latent download-driver bugs (00-REVIEW.md CR-01/02/03)
 expected: Decide whether the 3 latent integrity bugs (CR-01 hardcoded Figshare article ID; CR-02 KPMP non-fatal path is dead code; CR-03 MD5 mismatch non-fatal) must be fixed before Phase 1, or accepted as deferred risk. All are LATENT for this run — the data on disk is correct.
@@ -31,9 +31,9 @@ result: RESOLVED 2026-06-21 — all three fixed in scripts/download_spatial.py +
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
