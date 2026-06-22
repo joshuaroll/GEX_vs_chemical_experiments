@@ -166,7 +166,14 @@ def validate_usable_inputs(datasets, raw_root) -> dict[str, CountCheck]:
     for d in datasets:
         if not getattr(d, "usable_as_input", False):
             continue
-        if not (root / d.slug).exists():
+        dpath = root / d.slug
+        if not dpath.exists():
+            continue
+        # An EMPTY directory means nothing was downloaded — e.g. a DUA/ToS-gated
+        # source (KPMP) that the driver deliberately skipped. That is the
+        # existence assertion's domain, not the content guard's. Only flag dirs
+        # that HAVE files but no count artifact (images-only / metadata-only).
+        if not any(p.is_file() for p in dpath.rglob("*")):
             continue
         res = dataset_has_counts(d, root)
         if not res.has_counts:

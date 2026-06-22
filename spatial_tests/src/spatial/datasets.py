@@ -162,7 +162,12 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         # as the Lake/KPMP primary. Verified 2026-06-20: primary is GEO GSE183456 (raw)
         # + GSE183279 (superseries). GSE211785 (Abedini 2024) demoted to substitute entry.
         accession="GEO: GSE183456 + GSE183279 (superseries); KPMP: https://atlas.kpmp.org",
-        access_mechanism="geo_supp",
+        # CR-02 (2026-06-21): was "geo_supp" (hard-halting) — a DUA/ToS-gated KPMP
+        # 404 would abort the whole run. Routed through the "kpmp" dispatcher, which
+        # tries GEO supplementary first (works when public, as it did here) and, on
+        # failure, logs the atlas.kpmp.org ToS click-through and CONTINUES with other
+        # datasets instead of firing Halt Gate 1.
+        access_mechanism="kpmp",
         expected_files=("GSE183456_RAW.tar",),
         license="see source (KPMP DUA)",
         whole_transcriptome=True,

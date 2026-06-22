@@ -26,14 +26,14 @@ result: [pending]
 
 ### 4. Latent download-driver bugs (00-REVIEW.md CR-01/02/03)
 expected: Decide whether the 3 latent integrity bugs (CR-01 hardcoded Figshare article ID; CR-02 KPMP non-fatal path is dead code; CR-03 MD5 mismatch non-fatal) must be fixed before Phase 1, or accepted as deferred risk. All are LATENT for this run — the data on disk is correct.
-result: [pending]
+result: RESOLVED 2026-06-21 — all three fixed in scripts/download_spatial.py + src/spatial/datasets.py. CR-01: article id now parsed from entry.accession via _figshare_article_id() (halts if unparseable; no hardcoded constant). CR-02: lake_kpmp_kidney access_mechanism geo_supp->kpmp, so a DUA/ToS-gated 404 logs the atlas.kpmp.org click-through and CONTINUES instead of aborting the run; content guard updated to skip empty (ToS-gated) dirs. CR-03: figshare md5 mismatch now removes the bad file and fires Halt Gate 1 (never accepts corrupt/substituted bytes). Regression tests added (test_data_validation.py: test_cr01_*, test_cr02_*, test_cr03_*). 149/149 tests pass.
 
 ## Summary
 
 total: 4
-passed: 1
+passed: 3
 issues: 0
-pending: 3
+pending: 1
 skipped: 0
 blocked: 0
 

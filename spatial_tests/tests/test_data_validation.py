@@ -182,6 +182,67 @@ def test_missing_directory_is_not_counts(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+def test_validate_skips_empty_dir(tmp_path):
+    # KPMP-consistency: an empty dir (DUA/ToS-gated skip) is not a content failure.
+    (tmp_path / "ds_empty").mkdir()
+    e = _entry("ds_empty")
+    e.usable_as_input = True
+    assert validate_usable_inputs([e], tmp_path) == {}
+
+
+def test_validate_flags_present_but_countless(tmp_path):
+    d = tmp_path / "ds_bad"
+    _touch(d / "only_image.tif")
+    e = _entry("ds_bad")
+    e.usable_as_input = True
+    assert "ds_bad" in validate_usable_inputs([e], tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Driver regression guards (CR-01 / CR-02 / CR-03)
+# ---------------------------------------------------------------------------
+
+import importlib.util  # noqa: E402
+
+_DRIVER = ROOT / "scripts" / "download_spatial.py"
+
+
+def _load_driver():
+    spec = importlib.util.spec_from_file_location("download_spatial_mod", _DRIVER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_cr01_figshare_id_parsed_from_accession():
+    drv = _load_driver()
+    assert drv._figshare_article_id(
+        "figshare: 22321447 (DOI 10.6084/m9.figshare.22321447.v1)"
+    ) == "22321447"
+    assert drv._figshare_article_id("figshare.17058105") == "17058105"
+    assert drv._figshare_article_id("GEO: GSE185477") == ""  # non-figshare -> no id
+
+
+def test_cr01_no_hardcoded_figshare_constant():
+    # The module must not reintroduce a hardcoded article-id constant.
+    assert "FIGSHARE_ARTICLE_ID" not in _DRIVER.read_text()
+
+
+def test_cr02_lake_kpmp_uses_nonfatal_kpmp_mechanism():
+    # lake/KPMP must dispatch through the non-fatal "kpmp" path so a DUA-gated 404
+    # does not abort the whole run via the hard-halting geo_supp path.
+    lake = next(d for d in SPATIAL_DATASETS if d.slug == "lake_kpmp_kidney")
+    assert lake.access_mechanism == "kpmp"
+
+
+def test_cr03_md5_mismatch_is_fatal():
+    # The figshare md5-mismatch branch must call _halt (not just log.warning).
+    text = _DRIVER.read_text()
+    assert "recorded for MANIFEST review" not in text  # old warn-only text removed
+    idx = text.index("MD5 MISMATCH")
+    assert "_halt(" in text[idx - 200 : idx + 200]
+
+
 def test_usable_inputs_have_counts() -> None:
     """The guard: no usable_as_input dataset present on disk may lack counts.
 

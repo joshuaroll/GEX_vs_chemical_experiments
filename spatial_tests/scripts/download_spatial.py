@@ -14,7 +14,9 @@ Hard rules honored:
     - KPMP exception: if GEO supplementary 404s, log that portal ToS
       click-through is required and continue with other datasets (plan user_setup).
     - No torch import (P0 is data-only).
-    - Figshare md5 comparison: warn-and-record on mismatch, never silently pass.
+    - Figshare md5 comparison: HALT on mismatch (corrupt/substituted data is
+      never accepted; CR-03). Figshare article id is parsed from the accession,
+      not hardcoded (CR-01).
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -63,7 +66,6 @@ log = logging.getLogger("download_spatial")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-FIGSHARE_ARTICLE_ID = "22321447"
 CHUNK_SIZE = 1 << 20  # 1 MB
 
 
@@ -155,18 +157,42 @@ def _halt(reason: str, url: str = "", dataset: str = "", slug: str = "") -> None
 # ---------------------------------------------------------------------------
 
 
+def _figshare_article_id(accession: str) -> str:
+    """Parse the numeric Figshare article id from a registry accession string.
+
+    CR-01: the article id MUST come from entry.accession (the single source of
+    truth), never a hardcoded module constant — otherwise a second Figshare entry
+    would silently fetch the wrong article into the wrong slug while still passing
+    the expected-files assertion. Accepts forms like
+    'figshare: 22321447 (DOI 10.6084/m9.figshare.22321447.v1)'. Returns '' if no
+    id can be parsed (the caller halts; there is no silent fallback).
+    """
+    m = re.search(r"figshare[:\s]+(\d{4,})", accession, flags=re.IGNORECASE)
+    if not m:
+        m = re.search(r"figshare\.(\d{4,})", accession, flags=re.IGNORECASE)
+    return m.group(1) if m else ""
+
+
 def _download_figshare_api(entry, dest_dir: Path) -> None:
     """Fetch files from Figshare article via the Figshare REST API.
 
-    Checks the figshare-provided md5 against each downloaded file.
-    Warns on mismatch (never silently passes).
+    CR-01: the article id is parsed from entry.accession, not a hardcoded constant.
+    CR-03: a figshare-provided md5 mismatch is FATAL (Halt Gate 1) — corrupt or
+    substituted bytes are never accepted (XC-01).
     """
-    api_url = f"https://api.figshare.com/v2/articles/{FIGSHARE_ARTICLE_ID}"
+    article_id = _figshare_article_id(entry.accession)
+    if not article_id:
+        _halt(
+            f"Could not parse a Figshare article id from accession '{entry.accession}'",
+            dataset=entry.name,
+            slug=entry.slug,
+        )
+    api_url = f"https://api.figshare.com/v2/articles/{article_id}"
     log.info("Querying Figshare API: %s", api_url)
     resp = requests.get(api_url, timeout=60)
     if resp.status_code == 404:
         _halt(
-            f"Figshare article {FIGSHARE_ARTICLE_ID} returned 404",
+            f"Figshare article {article_id} returned 404",
             url=api_url,
             dataset=entry.name,
             slug=entry.slug,
@@ -183,7 +209,7 @@ def _download_figshare_api(entry, dest_dir: Path) -> None:
     files_meta = article.get("files", [])
     if not files_meta:
         _halt(
-            f"Figshare article {FIGSHARE_ARTICLE_ID} has no files listed",
+            f"Figshare article {article_id} has no files listed",
             url=api_url,
             dataset=entry.name,
             slug=entry.slug,
@@ -200,7 +226,7 @@ def _download_figshare_api(entry, dest_dir: Path) -> None:
     for expected_name in entry.expected_files:
         if expected_name not in remote_files:
             _halt(
-                f"Expected file '{expected_name}' not found in Figshare article {FIGSHARE_ARTICLE_ID}",
+                f"Expected file '{expected_name}' not found in Figshare article {article_id}",
                 url=api_url,
                 dataset=entry.name,
                 slug=entry.slug,
@@ -212,16 +238,23 @@ def _download_figshare_api(entry, dest_dir: Path) -> None:
         else:
             log.info("Already exists, skipping download: %s", dest_file)
 
-        # MD5 integrity check
+        # MD5 integrity check — CR-03: mismatch is FATAL, not a warning.
         if meta["md5"]:
             local_md5 = _md5_file(dest_file)
             if local_md5 != meta["md5"]:
-                log.warning(
-                    "MD5 MISMATCH for %s: local=%s remote=%s — "
-                    "recorded for MANIFEST review (not silently passed).",
-                    dest_file.name,
-                    local_md5,
-                    meta["md5"],
+                # Corrupt or substituted download. Remove the bad file so a re-run
+                # re-fetches, then halt — never accept silently (XC-01).
+                try:
+                    dest_file.unlink()
+                except OSError:
+                    pass
+                _halt(
+                    f"MD5 MISMATCH for {dest_file.name}: local={local_md5} "
+                    f"expected={meta['md5']} — corrupt or substituted download "
+                    f"(removed). Re-run to re-fetch.",
+                    url=meta["download_url"],
+                    dataset=entry.name,
+                    slug=entry.slug,
                 )
             else:
                 log.info("MD5 OK for %s (%s)", dest_file.name, local_md5)
