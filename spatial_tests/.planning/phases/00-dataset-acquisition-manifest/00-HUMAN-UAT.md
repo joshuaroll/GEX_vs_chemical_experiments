@@ -18,7 +18,7 @@ result: [pending]
 
 ### 2. chen_brain_mtg DE-results-only
 expected: Confirm whether the DESeq2 normalized expression .txt.gz (15 MB) serves Phase 1, or whether the raw Visium feature matrix must be located. Entry is `usable_as_input=True`, `whole_transcriptome=True`.
-result: [pending]
+result: RESOLVED 2026-06-21 — root cause was a WRONG-ACCESSION error, not a partial download. Prior GSE200474 is "Neurofilament accumulations in ALS patients' motor neurons" (bulk RNA-seq of iPSC motor neurons, GPL11154), unrelated to Chen MTG Visium. Located + applied the correct accession GSE220442 ("Spatially resolved transcriptomics ... vulnerability of MTG in AD", 10x Visium, GPL24676). Registry + MANIFEST updated; GSE220442_counts_and_images.tar.gz (451 MB, sha256 9c54b560...) downloaded and verified: 6 Space Ranger Visium sections (3 AD + 3 control), 36,601 genes, per-spot layer annotations (Layer 1–6 + White Matter) in GSE220442_metadata.csv.gz. 8/8 data-path tests pass.
 
 ### 3. DIRIL kidney labels TODO
 expected: DIRIL kidney toxicity labels acquired, OR accepted as a recorded gap. Currently `data/raw/labels/diril/DIRIL_TODO.txt` exists; labels were not fetched (journal-gated Elsevier CDN). REQUIREMENTS.md DATA-01 lists DIRIL as required.
@@ -31,9 +31,9 @@ result: [pending]
 ## Summary
 
 total: 4
-passed: 0
+passed: 1
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 

@@ -269,11 +269,15 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="brain",
         species="human",
         platform="Visium",
-        accession="GEO: GSE200474",
+        accession="GEO: GSE220442",
         access_mechanism="geo_supp",
-        # CORRECTED 2026-06-20: GSE200474 suppl has no RAW.tar; only the DESeq2 normalized
-        # expression file. Updated to the actual file present in GEO supplementary.
-        expected_files=("GSE200474_Deseq2_normalized_gene_expression_with_annotations.txt.gz",),
+        # CORRECTED 2026-06-21: prior GSE200474 was a WRONG-ACCESSION error — that series is
+        # "Neurofilament accumulations in ALS patients' motor neurons" (bulk RNA-seq of iPSC
+        # motor neurons, GPL11154 HiSeq 2000), NOT Chen 2022 MTG Visium. The real dataset is
+        # GSE220442 ("Spatially resolved transcriptomics ... vulnerability of MTG in AD",
+        # 10x Visium, GPL24676, 6 postmortem MTG sections: 3 AD + 3 control). Control (CT)
+        # sections serve as the basal-region input. Verified via NCBI esummary 2026-06-21.
+        expected_files=("GSE220442_counts_and_images.tar.gz",),
         license="see source",
         whole_transcriptome=True,
         slug="chen_brain_mtg",
