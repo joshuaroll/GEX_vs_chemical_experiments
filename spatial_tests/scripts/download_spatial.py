@@ -36,6 +36,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
 from src.spatial.datasets import SPATIAL_DATASETS  # noqa: E402
+from src.spatial.data_validation import validate_usable_inputs  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -549,6 +550,30 @@ def main() -> None:
         )
 
     log.info("All expected_files assertions passed.")
+
+    # -----------------------------------------------------------------------
+    # Post-download CONTENT assertion (Halt Gate 1) — existence is not enough.
+    # A present file may hold no usable expression counts: images-only RAW.tar,
+    # metadata-only download, or a wrong-study accession. Verify every
+    # usable_as_input dataset that landed on disk actually contains a count
+    # artifact (10x triplet / Space Ranger .h5 / .h5ad / Seurat .rds), looking
+    # one level into per-sample archives. See src/spatial/data_validation.py.
+    # -----------------------------------------------------------------------
+    log.info("Running post-download content (counts) assertion...")
+    counts_failures = validate_usable_inputs(SPATIAL_DATASETS, DATA_RAW_SPATIAL)
+    if counts_failures:
+        details = "; ".join(
+            f"{slug}: no expression count artifact found "
+            f"(inspected {len(check.checked)} file(s))"
+            for slug, check in counts_failures.items()
+        )
+        _halt(
+            f"Post-download content assertion FAILED for {len(counts_failures)} "
+            f"usable_as_input dataset(s): {details}. A named file exists but holds "
+            f"no usable counts (images-only / metadata-only / wrong study). "
+            f"Fix the registry accession/expected_files or demote usable_as_input.",
+        )
+    log.info("All content (counts) assertions passed.")
     log.info("Spatial dataset downloads complete.")
 
 
