@@ -38,3 +38,19 @@ skipped: 0
 blocked: 0
 
 ## Gaps
+
+### Soft-entry + input-counts audit (2026-06-21)
+Triggered by the chen_brain_mtg wrong-accession finding. Audited all `expected_files=()` entries and content-verified every `usable_as_input=True` dataset on disk (counts present, not just images). Failure mode found in 3 forms: wrong study (chen, fixed), images-only tar (abedini), metadata-only (maynard). `expected_files` checks existence, never content/shape — the systemic hole.
+
+Fixes applied (registry + MANIFEST):
+- **abedini_kidney** → usable_as_input=False. GSE211785_RAW.tar is images(.tif)+spatial(.json) only; counts ship separately as GSE211785_EXPORT_ST_counts.rds.gz (not fetched). lake_kpmp is the verified primary kidney input (real Visium counts on disk, nested per-sample .h5).
+- **canela_kidney** → usable_as_input=False. Long-read isoform data (.bb/SQANTI .gtf), no standard Visium matrix.
+- **maynard_dlpfc** → usable_as_input=False (resolves UAT item 1). Metadata-only on disk; chen_brain_mtg (GSE220442) is the human brain input.
+- **kanemaru_heart** → usable_as_input=False. Heart deferred; EGA controlled-access; dir empty.
+- **muto_kidney_cosmx** → corrected. Prior GSE211785 accession was a misattributed duplicate of abedini (and not CosMx). No verified public Muto CosMx accession; annotation-only placeholder.
+- **wu_moffitt_liver_merfish** → annotated. GSE210077 is the snRNA-seq companion (GPL18573), not the MERFISH data (Dryad DOI).
+- **gse252772_mouse_kidney** → kept usable; counts present as Seurat .rds (needs R->anndata conversion in P1/P2).
+
+Verified `usable_as_input=True` set (7), all with counts on disk: yu2022_liver, andrews_liver, lake_kpmp_kidney, chen_brain_mtg, gse272564_mouse_liver_ctrl, gse233983_mouse_brain, gse252772_mouse_kidney (.rds).
+
+OPEN (recommended, not yet done): add a content/shape check (not just file existence) to the data-path test / download driver, so a present-but-empty/wrong file can't pass acquisition again.

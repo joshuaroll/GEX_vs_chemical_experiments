@@ -123,7 +123,10 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="liver",
         species="human",
         platform="MERFISH",
-        accession="Dryad: 10.5061/dryad.37pvmcvsg; GEO: GSE210077; viewer: https://moffittlab.github.io/visualization/2024_Human_Liver/",
+        # AUDIT 2026-06-21: GSE210077 is the snRNA-seq COMPANION ("Single nuclei RNA-seq of
+        # normal and diseased liver", GPL18573) — NOT the MERFISH data. MERFISH is the Dryad
+        # DOI below. Annotation-only (usable_as_input=False), so no fetch/integrity impact.
+        accession="Dryad: 10.5061/dryad.37pvmcvsg (MERFISH); GEO: GSE210077 (snRNA-seq companion); viewer: https://moffittlab.github.io/visualization/2024_Human_Liver/",
         access_mechanism="url",
         expected_files=(),
         license="see source",
@@ -172,15 +175,20 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="kidney",
         species="human",
         platform="Visium",
-        # GSE211785 is a verified 2024 Abedini Visium kidney study — used as substitute
-        # when Lake/KPMP access (GEO supplementary) is unavailable.
+        # GSE211785 = Abedini et al. 2024 multi-omics kidney atlas (verified via NCBI esummary
+        # 2026-06-21). AUDIT 2026-06-21: GSE211785_RAW.tar contains ONLY per-section images
+        # (.tif.gz) + spatial JSON — NO expression counts. The spatial counts ship separately
+        # as GSE211785_EXPORT_ST_counts.rds.gz (+ GSE211785_ST_metadata.txt.gz), R .rds format.
+        # Demoted to usable_as_input=False: lake_kpmp_kidney (GSE183456) is the verified primary
+        # kidney input with real Visium counts on disk. Promote + fetch the .rds export if a
+        # second kidney reference is needed.
         accession="GEO: GSE211785",
         access_mechanism="geo_supp",
         expected_files=("GSE211785_RAW.tar",),
         license="see source",
         whole_transcriptome=True,
         slug="abedini_kidney",
-        usable_as_input=True,
+        usable_as_input=False,
         region_annotation_source="author-provided",
     ),
     SpatialDataset(
@@ -188,8 +196,12 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="kidney",
         species="human",
         platform="CosMx",
-        accession="GEO: GSE211785; bioRxiv: https://doi.org/10.1101/2022.10.24.513598",
-        access_mechanism="geo_supp",
+        # AUDIT 2026-06-21: prior accession "GEO: GSE211785" was WRONG — that series is the
+        # Abedini Visium multi-omics atlas (sequencing-based), NOT a Muto CosMx dataset (CosMx
+        # is imaging-based, ~960-gene panel). No verified public Muto CosMx kidney accession on
+        # file; this is an annotation-only placeholder pending a confirmed source.
+        accession="no verified public accession (prior GSE211785 was a misattributed duplicate of abedini_kidney); bioRxiv: https://doi.org/10.1101/2022.10.24.513598",
+        access_mechanism="url",
         expected_files=(),
         license="see source",
         # CosMx fixed panel (~960 genes) — NOT whole-transcriptome
@@ -203,13 +215,16 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="kidney",
         species="human",
         platform="Visium",
+        # AUDIT 2026-06-21: GSE202327_RAW.tar contains long-read isoform outputs (.bb /
+        # SQANTI-corrected .gtf), NOT a standard Visium gene x spot count matrix. Cannot
+        # produce the DE-rule count input; demoted to usable_as_input=False (reference only).
         accession="GEO: GSE202327",
         access_mechanism="geo_supp",
         expected_files=("GSE202327_RAW.tar",),
         license="see source",
         whole_transcriptome=True,
         slug="canela_kidney",
-        usable_as_input=True,
+        usable_as_input=False,
         region_annotation_source="manual",
     ),
     # =====================================================================
@@ -222,13 +237,17 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         platform="Visium",
         # CORRECTED: GSE144239 is an unrelated squamous cell carcinoma study (SCC).
         # Maynard DLPFC is spatialLIBD / LieberInstitute — verified HTTP 200 2026-06-20.
+        # AUDIT 2026-06-21: only metadata_spatialLIBD.csv (sample sheet) was fetched — NO
+        # expression objects on disk. chen_brain_mtg (GSE220442) is the verified human brain
+        # Visium input. Demoted to usable_as_input=False; promote + fetch full spatialLIBD
+        # objects (multi-GB, Bioconductor/R) if a second cortical reference is wanted.
         accession="spatialLIBD / LieberInstitute (http://spatial.libd.org/; Bioconductor spatialLIBD)",
         access_mechanism="spatialLIBD",
         expected_files=(),
         license="Artistic-2.0",
         whole_transcriptome=True,
         slug="maynard_dlpfc",
-        usable_as_input=True,
+        usable_as_input=False,
         region_annotation_source="manual",
     ),
     SpatialDataset(
@@ -292,13 +311,17 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="heart",
         species="human",
         platform="Visium",
+        # AUDIT 2026-06-21: heart is DEFERRED per ROADMAP; primary access is EGA controlled-
+        # access (EGAS00001006330, requires DAC approval — not auto-fetchable) and the dir is
+        # empty. Set usable_as_input=False (matches sibling asp_heart) so there is no usable-
+        # input claim with no data on disk.
         accession="EGA: EGAS00001006330; HCA Portal: https://data.humancellatlas.org; Zenodo: 10.5281/zenodo.7098004",
         access_mechanism="url",
         expected_files=(),
         license="see source",
         whole_transcriptome=True,
         slug="kanemaru_heart",
-        usable_as_input=True,
+        usable_as_input=False,
         region_annotation_source="author-provided",
     ),
     SpatialDataset(
@@ -375,6 +398,10 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         organ="kidney",
         species="mouse",
         platform="Visium",
+        # AUDIT 2026-06-21: counts ARE present but as per-sample Seurat objects
+        # (GSM*_obj.rds.gz) inside the RAW.tar — not 10x mtx/h5. Real data; requires an
+        # R->anndata conversion step in P1/P2 before scanpy can load it (the whole-
+        # transcriptome gate's *.h5/*.h5ad rglob will not see .rds). Kept usable_as_input=True.
         accession="GEO: GSE252772",
         access_mechanism="geo_supp",
         expected_files=("GSE252772_RAW.tar",),
