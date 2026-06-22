@@ -53,4 +53,4 @@ Fixes applied (registry + MANIFEST):
 
 Verified `usable_as_input=True` set (7), all with counts on disk: yu2022_liver, andrews_liver, lake_kpmp_kidney, chen_brain_mtg, gse272564_mouse_liver_ctrl, gse233983_mouse_brain, gse252772_mouse_kidney (.rds).
 
-OPEN (recommended, not yet done): add a content/shape check (not just file existence) to the data-path test / download driver, so a present-but-empty/wrong file can't pass acquisition again.
+RESOLVED 2026-06-21: content/shape guard implemented. `src/spatial/data_validation.py` (`dataset_has_counts` / `validate_usable_inputs`) inspects each dataset dir for a real count artifact (10x triplet / Space Ranger .h5 / .h5ad / Seurat .rds, one level into per-sample archives). Enforced two ways: (1) `tests/test_data_validation.py` — 11 tests incl. a real integration check over all on-disk inputs (accept loose/nested/zip counts; reject images-only, metadata-only, DESeq2 table, long-read gtf); (2) post-download CONTENT assertion (Halt Gate 1) in `scripts/download_spatial.py` after the existence check. "Download succeeded" now means counts are actually present. Full suite 143 passed.
