@@ -7,8 +7,8 @@ Downloads per-organ toxicity label sets into data/raw/labels/<set>/:
   - brain: SIDER (sideeffects.embl.de) meddra_all_se.tsv.gz ONLY — nervous-system
     SOC (serious terms) filtered at use time; seizure/DNT-IVB are explicitly NOT
     fetched in P0 (DEFERRED to Phase 1 per plan DECISION below)
-  - heart: DICTrank fetched from the FDA (heart DEFERRED per ROADMAP, but the label
-    set is acquired now for readiness; non-fatal on failure)
+  - heart: DICTrank fetched from the FDA (heart IN-SCOPE as of 2026-06-21; non-fatal
+    on failure, mirroring the DIRIL pattern)
 
 DECISION (recorded per Plan 02 Task 2):
   P0 brain toxicity labels = SIDER nervous-system SOC (serious terms) ONLY.
@@ -101,8 +101,8 @@ _HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"}
 
 # DICTrank (Qu et al. 2023, Drug Discov Today 28(11)) — heart cardiotoxicity label set.
 # FDA-hosted (public): 1318 drugs ranked into most/less/no/ambiguous DICT-concern.
-# Heart is DEFERRED per ROADMAP, but the set is small + the source stable, so it is
-# acquired now so it is ready when heart is activated.
+# Heart is IN-SCOPE (activated 2026-06-21); DICTrank is the cardiac analogue of
+# DILIrank/DIRIL.
 DICTRANK_URL = "https://www.fda.gov/media/178811/download?attachment"  # dictrank_dataset_508.xlsx
 
 
@@ -399,11 +399,12 @@ def download_brain_labels() -> None:
 def download_heart_labels() -> None:
     """Acquire DICTrank (heart cardiotoxicity labels) from the FDA.
 
-    Heart is DEFERRED per ROADMAP (last organ in the pipeline), so failure here is
-    NON-FATAL (logged, never halts the run). The FDA hosts DICTrank publicly
-    (Qu et al. 2023, Drug Discov Today 28(11)): 1318 drugs ranked into
-    most/less/no/ambiguous DICT-concern. Acquired now for readiness. Idempotent:
-    skips if already on disk. Never fabricates labels (XC-01).
+    Heart is IN-SCOPE (activated 2026-06-21) — DICTrank is the cardiac analogue of
+    DILIrank/DIRIL. Failure stays NON-FATAL (logged; mirrors the DIRIL pattern) since
+    the FDA source is stable and the file is staged on disk. The FDA hosts DICTrank
+    publicly (Qu et al. 2023, Drug Discov Today 28(11)): 1318 drugs ranked into
+    most/less/no/ambiguous DICT-concern. Idempotent: skips if already on disk.
+    Never fabricates labels (XC-01).
     """
     dict_dir = DATA_RAW_LABELS / "dictrank"
     dict_dir.mkdir(parents=True, exist_ok=True)
@@ -418,10 +419,7 @@ def download_heart_labels() -> None:
         if resp.status_code == 200 and "text/html" not in resp.headers.get("Content-Type", ""):
             _stream_download_non_fatal(DICTRANK_URL, dest)
             if dest.exists() and dest.stat().st_size > 0:
-                log.info(
-                    "DICTrank: Downloaded successfully (heart DEFERRED per ROADMAP; "
-                    "label set staged for activation)."
-                )
+                log.info("DICTrank: Downloaded successfully (heart in-scope).")
                 return
         log.warning(
             "DICTrank: FDA source returned HTTP %s / unexpected type — skipping "
@@ -454,7 +452,7 @@ def main() -> None:
     download_brain_labels()
 
     # Heart labels (DICTrank deferred per ROADMAP)
-    log.info("=== Heart labels (DICTrank — FDA; heart deferred, acquired for readiness) ===")
+    log.info("=== Heart labels (DICTrank — FDA; heart in-scope) ===")
     download_heart_labels()
 
     log.info("Per-organ toxicity label-set downloads complete.")

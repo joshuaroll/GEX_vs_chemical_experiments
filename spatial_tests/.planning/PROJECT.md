@@ -95,7 +95,7 @@ P5 and P7 have no halt gate (poor transfer is itself a reportable result).
 - **DEC-region-granularity-published (Q4)** — Published region annotations are the default; fall back to unsupervised Leiden domains only when no usable published annotation exists.
 - **DEC-frozen-checkpoints-seam** — Inference path raises until checkpoints confirmed; `region_signature.py` `NotImplementedError` seam replaced in Phase 2.
 - **DEC-ortholog-discipline** — One-to-one orthologs only; many-to-many dropped; dropped fraction reported.
-- **DEC-per-organ-only** — Per-organ training only; no joint multi-organ model. Liver/kidney/brain first; heart deferred. Dose-response channel prototyped on liver first, then ported.
+- **DEC-per-organ-only** — Per-organ training only; no joint multi-organ model. Liver/kidney/brain, **plus heart (ACTIVATED 2026-06-21 per user direction; heart deferral rescinded)**. Heart data acquired + verified: public Kuppe et al. 2022 Visium control sections (Zenodo 6578047, CC BY 4.0) + FDA DICTrank labels. Heart is still sequenced last. Dose-response channel prototyped on liver first, then ported.
 - **DEC-doseresponse-first-class-channel (D2)** — Dose-response (E-Hill / viability) is a first-class third channel in all organs, simultaneously a feature AND the cytotoxicity confound control. Fusion must beat both GEX-only and dose-response-only single-channel baselines.
 - **DEC-concat-mlp-fixed** — Headline classifier is a fixed 3-layer concat-MLP (GELU, dropout, BN) over projected channels; architecture search out of scope. Capacity held constant across conditions (inactive channel = zero tensor of identical shape).
 
@@ -110,7 +110,7 @@ P5 and P7 have no halt gate (poor transfer is itself a reportable result).
 
 - Retraining / fine-tuning MultiDCP / CheMoE (frozen baseline only).
 - Joint multi-organ model (per-organ only).
-- Heart as a starting organ (sequenced after liver/kidney/brain).
+- Heart deferral — RESCINDED 2026-06-21. Heart is now the 4th in-scope organ (public Kuppe Visium control + FDA DICTrank acquired); still sequenced last, after liver/kidney/brain.
 - Non-DE metrics / raw-expression features.
 
 ## Constraints (implementation contracts)

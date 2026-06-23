@@ -11,7 +11,7 @@ Supporting detail attributed inline. v1 = all 8 phase requirements (this milesto
 ### DATA-01 — Acquire all input datasets, versioned, on disk
 - **Phase:** P0
 - **Source:** SPEC §6 Phase 0; accession corrections from DOC 09.
-- Acquire every input dataset on disk, versioned: whole-transcriptome Visium for basal context; rodent spatial; APAP drug-perturbed validation (GSE280652 / GSE272564); rodent toxicogenomics; human/per-organ toxicity labels (DILIst/DILIrank liver; DIRIL kidney; DICTrank heart deferred; SIDER/Lane-Ekins/DNT-IVB brain). No model code in this phase.
+- Acquire every input dataset on disk, versioned: whole-transcriptome Visium for basal context; rodent spatial; APAP drug-perturbed validation (GSE280652 / GSE272564); rodent toxicogenomics; human/per-organ toxicity labels (DILIst/DILIrank liver; DIRIL kidney; DICTrank heart [activated 2026-06-21]; SIDER/Lane-Ekins/DNT-IVB brain). No model code in this phase.
 - **Corrected accessions (DOC 09):** Yu 2022 liver = Figshare 10.6084/m9.figshare.17058105 (GSE189994 is wrong); Lake/KPMP kidney = GSE183456 + GSE183279 (not GSE211785 = Abedini 2024 substitute); Maynard DLPFC = spatialLIBD / LieberInstitute (not GSE144239); no public human-brain MERFISH exists (Allen ABC MERFISH is mouse only).
 - **Acceptance:** all planned datasets on disk and versioned; accession corrections applied before download scripts written.
 

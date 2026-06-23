@@ -309,7 +309,7 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         region_annotation_source="manual",
     ),
     # =====================================================================
-    # HEART — human (deferred; DEC-per-organ-only: heart is last)
+    # HEART — human (ACTIVATED 2026-06-21; in-scope as the 4th organ)
     # =====================================================================
     SpatialDataset(
         name="Kuppe et al. 2022 — Spatial multi-omic map of human myocardial infarction (control + remote myocardium)",
@@ -320,9 +320,9 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         # Zenodo 6578047 ships per-section .h5ad. The 4 CONTROL (non-transplanted donor
         # heart) sections are the basal-region input; the 4 RZ (remote, non-affected
         # myocardium) sections are also non-diseased. Acquired + verified 2026-06-21:
-        # control P1 = 4269 spots x 15730 genes, obsm['X_spatial'] present, cell-type
-        # deconvolution in obs. Heart is DEFERRED per ROADMAP, so usable_as_input=False
-        # for now (data is on disk + content-verified; flip to True to activate heart).
+        # control P1 = 4269 spots x 15730 genes (gene symbols), obsm['X_spatial'] present,
+        # cell-type deconvolution in obs; whole-transcriptome coverage of MultiDCP 10716 =
+        # 0.834 (> 0.80 gate). ACTIVATED: heart is now in-scope (usable_as_input=True).
         accession="Zenodo: 10.5281/zenodo.6578047; Nature 2022 (s41586-022-05060-x); CZ CELLxGENE",
         access_mechanism="url",
         expected_files=(
@@ -334,7 +334,7 @@ SPATIAL_DATASETS: Final[list[SpatialDataset]] = [
         license="CC BY 4.0",
         whole_transcriptome=True,
         slug="kuppe_heart",
-        usable_as_input=False,
+        usable_as_input=True,
         region_annotation_source="author-provided (cell-type deconvolution + CELLxGENE ontology in obs)",
     ),
     SpatialDataset(

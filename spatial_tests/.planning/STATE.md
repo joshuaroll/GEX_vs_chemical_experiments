@@ -52,6 +52,7 @@ progress:
 - Visium whole-transcriptome only as basal input; targeted panels are annotation-only.
 - Published region annotations default; per-organ only; fixed 3-layer concat-MLP; dose-response is a first-class third channel and confound control.
 - One-to-one orthologs only; report dropped fraction.
+- **Heart ACTIVATED 2026-06-21 (per user direction; deferral rescinded)** — now the 4th in-scope organ. Input: public Kuppe et al. 2022 Visium control sections (`kuppe_heart`, 4×.h5ad, Zenodo 6578047, CC BY 4.0; coverage 0.834 of MultiDCP 10716, `usable_as_input=True`). Labels: FDA DICTrank (`data/raw/labels/dictrank/`, 1318 drugs, no SMILES → needs structure join). EGA-gated Kanemaru remains non-usable. Heart still sequenced last.
 
 ### Proposed decisions (PENDING professor sign-off — confirm at phase planning)
 

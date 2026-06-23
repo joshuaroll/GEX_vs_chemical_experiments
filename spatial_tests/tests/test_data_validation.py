@@ -243,6 +243,32 @@ def test_cr03_md5_mismatch_is_fatal():
     assert "_halt(" in text[idx - 200 : idx + 200]
 
 
+# ---------------------------------------------------------------------------
+# Heart in-scope (activated 2026-06-21)
+# ---------------------------------------------------------------------------
+
+
+def test_heart_in_scope_kuppe_usable():
+    # kuppe_heart must be a usable whole-transcriptome Visium input; the EGA-gated
+    # kanemaru_heart stays non-usable.
+    k = next(d for d in SPATIAL_DATASETS if d.slug == "kuppe_heart")
+    assert k.usable_as_input and k.whole_transcriptome and k.platform == "Visium"
+    assert any(d.organ == "heart" and d.usable_as_input for d in SPATIAL_DATASETS)
+    kan = next(d for d in SPATIAL_DATASETS if d.slug == "kanemaru_heart")
+    assert not kan.usable_as_input  # EGA controlled-access
+
+
+def test_dictrank_labels_present_if_downloaded():
+    p = ROOT / "data" / "raw" / "labels" / "dictrank" / "dictrank_dataset_508.xlsx"
+    if not p.exists():
+        pytest.skip("DICTrank not downloaded; run scripts/download_labels.py")
+    import pandas as pd
+
+    df = pd.read_excel(p, sheet_name="Table S1")
+    assert len(df) == 1318, f"expected 1318 DICTrank drugs, got {len(df)}"
+    assert any("DICT" in str(c) for c in df.columns), "no DICT-concern column found"
+
+
 def test_usable_inputs_have_counts() -> None:
     """The guard: no usable_as_input dataset present on disk may lack counts.
 
