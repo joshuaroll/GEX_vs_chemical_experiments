@@ -132,3 +132,19 @@ redistribution:
 - Mouse/rodent GEO datasets — GEO standard terms
 
 Record an SPDX-style tag + URL in the License column above before any redistribution.
+
+---
+
+## Phase 1 — Reused external inputs (v0.5 dili_downstream + PDG manifold)
+
+> Recorded before first read per D-05; these are static external inputs, not
+> live cross-project dependencies. Do NOT touch /raid/home/joshua/.planning (isolation rule).
+
+| File | Path | SHA256 | Source | License | Whole-transcriptome | Notes |
+|------|------|--------|--------|---------|--------------------|----|
+| wangli measured DE | `../dili_downstream/data/processed/wangli_measured_de.npy` | `aaeb07ce13222af49c873be8652b01597a4c638119efd306d4f4d7c04b9397f5` | dili_downstream v0.5 Phase 1 output | see source | N/A | External input; shape (5517, 978) float32; ceiling DE matrix (D-05) |
+| wangli profiles | `../dili_downstream/data/processed/wangli_profiles.csv` | `963ea3e836b061a6eb2fa066ef5634b4cf9e9cfda8537ea45e98ef1ec3cf872e` | dili_downstream v0.5 | see source | N/A | 5517 rows x 12 cols; profile metadata for the DE matrix |
+| dili canonical SMILES | `../dili_downstream/data/processed/dili_canonical.csv` | `8e30f71278fad1391eacab0fc287d2898361249cd119ade810f86212243a3525` | dili_downstream v0.5 | see source | N/A | SMILES join layer 1; join key drug_name->name_lower |
+| dilist SMILES resolved | `../dili_downstream/data/processed/dilist_smiles_resolved.csv` | `b57be7557b52fd6c3f094e718e560a522452895ee7c317a67084b1c83ebbdf26` | dili_downstream v0.5 | see source | N/A | SMILES join (DILIst secondary, D-04) |
+| drugbank SMILES index | `../dili_downstream/data/processed/drugbank_smiles_index.csv` | `2ad9eb4d642f954dfdc8aa30deb0a4089b99292af0917af4df0e034c05134a5e` | DrugBank index via dili_downstream v0.5 | see source | N/A | 38917 rows; SMILES fallback layer 2; key name_lower |
+| pdg diseased manifold | `/raid/home/joshua/projects/MultiDCP_pdg/data/pdg_diseased_brddrugfiltered_avg_over_celltype_10x10717.csv` | `e1e38f118c91be64065bdb8458479bfe3b0fc0a9c118a7e5352523f5a2306fb1` | MultiDCP_pdg | see source | N/A | (10, 10716) cancer-line manifold; EDA-03 OOD reference |
