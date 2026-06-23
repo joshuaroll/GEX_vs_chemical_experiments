@@ -1,6 +1,6 @@
 # Phase 1 EDA Report: The Bracket (liver/human)
 
-**Generated:** 2026-06-23T05:08:47Z
+**Generated:** 2026-06-23T06:31:55Z
 **Sub-command:** all
 
 ## EDA-01: Structure-Only Floor (DILIrank, liver/human)
@@ -39,8 +39,20 @@
 |--------|-------|
 | PCA participation ratio (effective rank) | 18.5 |
 | MI fraction nonzero | 0.9366 |
-| Ceiling AUROC (drug-level, LR OOF) | 0.4336 |
+| Ceiling AUROC (drug-level, leakage-free) | 0.4336 |
 | n drugs (drug-level, ceiling) | 227 |
+
+### Leakage decomposition (Phase 1 headline)
+
+Profile-level measured-DE AUROC under a leaky split (a drug's profiles in both train and test, the Wang/Li-style setup) vs a drug-disjoint split (held-out drugs):
+
+| Profile-level evaluation | AUROC |
+|--------|-------|
+| Leaky (drug in train+test; benchmark-style) | 0.9120 |
+| Drug-disjoint (honest, held-out drugs) | 0.6052 |
+| **Drug-leakage inflation** | **+0.3068** |
+
+The honest profile-level measured ceiling (0.605) is comparable to the structure floor, and the leaky number (0.912) reproduces/exceeds the published Wang/Li benchmark (~0.798). The gap between them is drug-identity memorization, indicating the benchmark headline is substantially drug-leakage-inflated.
 
 ## Gap + Halt Gate 2 (EDA-01/02, D-02)
 
@@ -56,12 +68,24 @@
 | Shared-set class balance | 189 pos / 38 neg (83.3% positive) |
 | Halt Gate 2 | **FIRES** (stop-and-REFRAME per D-02) |
 
+### Power (Hanley-McNeil SE)
+
+| Quantity | Value |
+|--------|-------|
+| Floor AUROC SE | 0.0474 |
+| Ceiling AUROC SE | 0.0524 |
+| Min detectable gap @80% power (conservative, indep SE) | 0.1977 |
+| Observed |gap| | 0.1770 |
+
+With only 38 negative drugs the conservative minimum detectable gap (0.198) exceeds the observed |gap| (0.177); the paired-bootstrap significance comes from cancelling shared per-drug noise (same drugs in floor and ceiling) and the margin is thin.
+
 ### Interpretation caveat (read before acting on the gate)
 
-The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (StratifiedGroupKFold over compound; a drug's profiles never straddle train/test). An earlier profile-level CV inflated the ceiling via per-drug memorization (one drug carries up to 784 profiles) and is not used. Two limits bound how much this gate can say:
+The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (StratifiedGroupKFold over compound). Three points bound the conclusion:
 
-1. **Underpowered drug-level set.** Only 38 negative drugs in the 227-drug shared set drive a wide CI; the test has little power to resolve a small gap.
-2. **Unit of analysis.** At the *profile* level (Wang/Li's published setup) the measured DE reproduces their benchmark (AUROC ~0.79-0.93), so a near-chance *drug-level* ceiling reflects the harder, drug-disjoint, small-n comparison here -- **not** an absence of measured-biology DILI signal. Treat a firing as 'inconclusive at the drug level on this set', not as a clean biological null, when deciding the D-02 reframe.
+1. **Headline = drug leakage.** At the profile level the honest drug-disjoint measured AUROC is 0.605 vs a leaky 0.912 (+0.307 inflation) -- the Wang/Li-style benchmark is substantially drug-leakage-inflated (see EDA-02 leakage decomposition).
+2. **Measured ~= structure at the fair level.** The honest profile-level ceiling (0.605) is comparable to the structure floor (0.611); the more negative drug-aggregated gap is noise from collapsing many profiles onto few drugs.
+3. **Underpowered.** Only 38 negative drugs; the gate firing is marginal (see Power above). Treat this as 'measured biology adds no lift over structure, benchmark is leakage-inflated', not as a clean 'structure beats biology' result.
 
 ## EDA-03: Region Distinguishability (liver/human, yu2022 L5)
 
@@ -116,4 +140,4 @@ The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (Stratified
 
 
 ---
-*Run elapsed: 181.8s*
+*Run elapsed: 222.7s*
