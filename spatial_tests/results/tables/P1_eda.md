@@ -1,6 +1,6 @@
 # Phase 1 EDA Report: The Bracket (liver/human)
 
-**Generated:** 2026-06-23T03:53:09Z
+**Generated:** 2026-06-23T03:58:27Z
 **Sub-command:** all
 
 ## EDA-01: Structure-Only Floor (DILIrank, liver/human)
@@ -108,4 +108,4 @@
 
 
 ---
-*Run elapsed: 180.1s*
+*Run elapsed: 181.7s*
