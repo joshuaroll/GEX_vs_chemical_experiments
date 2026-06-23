@@ -41,7 +41,13 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   3. Region diagnostics (basal-profile similarity, spatially-variable-gene retention via Moran's I, gene coverage) and cross-species diagnostics (ortholog overlap, human-vs-rodent basal correlation, OOD distance from the cancer-line manifold) are reported.
   4. `results/tables/P1_eda.md` states the floor-ceiling gap, region distinguishability, and human-rodent basal concordance.
 **Halt gate**: HALT GATE 2 — floor-ceiling gap near zero for the organ → write `HALT_REASON.md`, reframe before training.
-**Plans**: TBD
+**Plans**: 6 plans
+  - [ ] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03)
+  - [ ] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01)
+  - [ ] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01)
+  - [ ] 01-04-PLAN.md — Wave 1: measured ceiling (participation ratio, per-gene MI, AUROC) + paired-bootstrap gap CI (EDA-02)
+  - [ ] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03)
+  - [ ] 01-06-PLAN.md — Wave 2: run_p1_eda.py driver on real data → P1_eda.md + Halt Gate 2 (EDA-01/02/03)
 
 ### Phase 2: MultiDCP wiring & toxicity head
 **Goal**: A working end-to-end forward path from drug + region basal to an organ-tox logit using the frozen baseline, validated against the APAP anchor.
@@ -120,7 +126,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Dataset acquisition & MANIFEST | 4/4 | Complete    | 2026-06-23 |
-| 1. EDA (the bracket) | 0/0 | Not started | - |
+| 1. EDA (the bracket) | 0/6 | Planned | - |
 | 2. MultiDCP wiring & toxicity head | 0/0 | Not started | - |
 | 3. Splits & no-leakage | 0/0 | Not started | - |
 | 4. Per-organ train/test (human first) | 0/0 | Not started | - |
