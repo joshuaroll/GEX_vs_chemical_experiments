@@ -168,6 +168,8 @@ def load_dilist(path: str) -> pd.DataFrame:
     df.columns = df.columns.str.strip()
 
     df["dili_binary"] = df["DILIst Classification"].astype(int)
-    df["name_lower"] = df["Compound"].str.lower().str.strip()
+    # On-disk column is "CompoundName" (not "Compound"); both variants tolerated.
+    name_col = "CompoundName" if "CompoundName" in df.columns else "Compound"
+    df["name_lower"] = df[name_col].str.lower().str.strip()
 
     return df[["name_lower", "dili_binary"]]
