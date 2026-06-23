@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 is BLOCKED.**
-stopped_at: Phase 1 fully executed (6/6 plans); Halt Gate 2 FIRED on 01-06 → reframe (D-02, user-confirmed).
-last_updated: "2026-06-23T20:23:43.976Z"
+status: **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. Gap-closure plan 01-07 PLANNED + plan-checker PASSED, ready to execute (does NOT un-halt).**
+stopped_at: Phase 1 reframe gap-closure plan 01-07 written + verified (VERIFICATION PASSED, 1st iteration); ready to execute. Halt Gate 2 still fired; Phase 2 still blocked.
+last_updated: "2026-06-23T21:00:00.000Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 10
+  total_plans: 11
   completed_plans: 10
-  percent: 100
+  percent: 91
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,17 +28,17 @@ progress:
 
 ## Current Position
 
-Phase: 01 (eda-the-bracket) — EXECUTED, **HALTED (Halt Gate 2 fired)**
-Plan: 6 of 6 (all executed)
+Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; gap-closure plan 01-07 PLANNED & verified
+Plan: 6 of 6 executed; 01-07 (gap-closure) planned, ready to execute
 
 - **Phase:** 1
-- **Plan:** 01-06 COMPLETE (run_p1_eda.py + results/tables/P1_eda.md produced on real data)
-- **Status:** **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 is BLOCKED.**
-- **Progress:** `[##################  ] P1: 6/6 plans executed; outcome = halt/reframe`
+- **Plan:** 01-06 COMPLETE; **01-07 PLANNED + plan-checker PASSED** (Wave 3, gap-closure — adds the floor's profile-level drug-disjoint AUROC so the profile-level sensitivity view is a true floor-vs-ceiling head-to-head, per D-06; writes the D-07 guidance note; preserves the halt).
+- **Status:** **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. 01-07 is a reporting/bracket completion that does NOT un-halt.**
+- **Progress:** `[##################  ] P1: 6/6 executed; 1 gap-closure plan ready; outcome = halt/reframe`
 
 **Halt Gate 2 result (leakage-corrected):** structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES. Robust headline finding: the Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (profile-level 0.912 leaky vs 0.605 drug-disjoint); honest measured ≈ structure at the fair level; the drug-aggregated gate is underpowered (38 negative drugs). See `results/tables/P1_eda.md` + `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
 
-**Next action:** Reframe discussion DONE (2026-06-23 → D-06 drug-disjoint unit, D-07 leakage guidance; see 01-CONTEXT.md). **REPLAN Phase 1 as gap-closure** per the reframed CONTEXT: `/gsd-plan-phase 1`. The main gap to close is adding the **floor's profile-level-disjoint number** so the profile-level sensitivity view is a true head-to-head (D-06). Do NOT execute Phase 2 until the reframed bracket + gate are reviewed. Open flags for the next gate review: power the gate (38 negatives), milestone go-no-go (measured ≈ structure).
+**Next action:** Gap-closure plan **01-07 is PLANNED + plan-checker PASSED** (2026-06-23). **Execute it:** `/gsd-execute-phase 1` (runs the single Wave-3 gap-closure plan: adds `floor_profile_disjoint_auroc` to floor.py, wires the profile-level drug-disjoint head-to-head into P1_eda.md beside the ceiling's number, writes the D-07 guidance note, adds a no-drug-leakage regression test). The halt STANDS — executing 01-07 does NOT un-halt; Phase 2 stays BLOCKED. Open flags still owed to the NEXT gate review (NOT this pass): power the gate (38 negatives), milestone go-no-go (honest measured ≈ structure ~0.61).
 
 ## Performance Metrics
 
@@ -159,5 +159,5 @@ Plan: 6 of 6 (all executed)
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Halt Gate 2 fired → reframe discussion COMPLETE (D-06 drug-disjoint unit-of-analysis; D-07 leakage discipline = guidance). Reframed context in `01-CONTEXT.md`.
-- **Resume with:** `/gsd-plan-phase 1` — replan Phase 1 as gap-closure per the reframed CONTEXT (add the floor's profile-level-disjoint head-to-head number; finalize drug-disjoint-primary bracket + guidance note). Do NOT execute Phase 2 yet. Deliverable so far: `results/tables/P1_eda.md`; halt record: `HALT_REASON.md`; reframe decisions: `01-CONTEXT.md` D-06/D-07.
+- **Stopped at:** Gap-closure plan **01-07 written + plan-checker PASSED (1st iteration, no revisions)**. Phase 1 now has 7 plans (6 executed, 01-07 ready). Halt Gate 2 still fired.
+- **Resume with:** `/gsd-execute-phase 1` — execute the single Wave-3 gap-closure plan 01-07 (floor profile-disjoint head-to-head + D-07 guidance note in P1_eda.md). Do NOT execute Phase 2 (still BLOCKED by Halt Gate 2). Plan: `.planning/phases/01-eda-the-bracket/01-07-PLAN.md`; reframe decisions: `01-CONTEXT.md` D-06/D-07; halt record: `HALT_REASON.md`.
