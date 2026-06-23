@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: halted
-stopped_at: "Phase 1 executed (6/6 plans); HALT GATE 2 FIRED on 01-06 → stop-and-REFRAME (D-02). Phase 2 BLOCKED pending reframe."
-last_updated: "2026-06-23T04:30:00Z"
+status: **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 is BLOCKED.**
+stopped_at: Phase 1 fully executed (6/6 plans); Halt Gate 2 FIRED on 01-06 → reframe (D-02, user-confirmed).
+last_updated: "2026-06-23T20:23:43.976Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -38,7 +38,7 @@ Plan: 6 of 6 (all executed)
 
 **Halt Gate 2 result (leakage-corrected):** structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES. Robust headline finding: the Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (profile-level 0.912 leaky vs 0.605 drug-disjoint); honest measured ≈ structure at the fair level; the drug-aggregated gate is underpowered (38 negative drugs). See `results/tables/P1_eda.md` + `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
 
-**Next action:** REFRAME (do NOT execute Phase 2). Discuss the reframe — center on (1) the benchmark drug-leakage finding, (2) a properly powered drug-disjoint comparison (expand negatives), (3) the unit of analysis (profile-level with drug-disjoint splits).
+**Next action:** Reframe discussion DONE (2026-06-23 → D-06 drug-disjoint unit, D-07 leakage guidance; see 01-CONTEXT.md). **REPLAN Phase 1 as gap-closure** per the reframed CONTEXT: `/gsd-plan-phase 1`. The main gap to close is adding the **floor's profile-level-disjoint number** so the profile-level sensitivity view is a true head-to-head (D-06). Do NOT execute Phase 2 until the reframed bracket + gate are reviewed. Open flags for the next gate review: power the gate (38 negatives), milestone go-no-go (measured ≈ structure).
 
 ## Performance Metrics
 
@@ -159,5 +159,5 @@ Plan: 6 of 6 (all executed)
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Phase 1 fully executed (6/6 plans); Halt Gate 2 FIRED on 01-06 → reframe (D-02, user-confirmed).
-- **Resume with:** REFRAME discussion (NOT Phase 2). Use `/gsd-discuss-phase` or a milestone reframe to address: benchmark drug-leakage finding, powering a drug-disjoint comparison (expand negatives), and the unit of analysis. Phase 1 deliverable: `results/tables/P1_eda.md`; halt record: `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
+- **Stopped at:** Halt Gate 2 fired → reframe discussion COMPLETE (D-06 drug-disjoint unit-of-analysis; D-07 leakage discipline = guidance). Reframed context in `01-CONTEXT.md`.
+- **Resume with:** `/gsd-plan-phase 1` — replan Phase 1 as gap-closure per the reframed CONTEXT (add the floor's profile-level-disjoint head-to-head number; finalize drug-disjoint-primary bracket + guidance note). Do NOT execute Phase 2 yet. Deliverable so far: `results/tables/P1_eda.md`; halt record: `HALT_REASON.md`; reframe decisions: `01-CONTEXT.md` D-06/D-07.
