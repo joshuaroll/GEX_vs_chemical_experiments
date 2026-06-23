@@ -43,7 +43,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 **Halt gate**: HALT GATE 2 — floor-ceiling gap near zero for the organ → write `HALT_REASON.md`, reframe before training.
 **Plans**: 6 plans
   - [x] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03) [DONE 2026-06-23]
-  - [ ] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01)
+  - [x] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01) [DONE 2026-06-23]
   - [ ] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01)
   - [ ] 01-04-PLAN.md — Wave 1: measured ceiling (participation ratio, per-gene MI, AUROC) + paired-bootstrap gap CI (EDA-02)
   - [ ] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03)
@@ -126,7 +126,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Dataset acquisition & MANIFEST | 4/4 | Complete    | 2026-06-23 |
-| 1. EDA (the bracket) | 0/6 | Planned | - |
+| 1. EDA (the bracket) | 2/6 | In Progress | - |
 | 2. MultiDCP wiring & toxicity head | 0/0 | Not started | - |
 | 3. Splits & no-leakage | 0/0 | Not started | - |
 | 4. Per-organ train/test (human first) | 0/0 | Not started | - |

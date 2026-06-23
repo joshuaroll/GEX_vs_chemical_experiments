@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md (Wave-0 Nyquist tests + MANIFEST provenance)
-last_updated: "2026-06-23T03:05:46Z"
+stopped_at: Completed 01-02-PLAN.md (Wave-0 shared data-prep libs)
+last_updated: "2026-06-23T03:12:57Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
@@ -32,11 +32,11 @@ Phase: 01 (eda-the-bracket) — EXECUTING
 Plan: 2 of 6
 
 - **Phase:** 1
-- **Plan:** 01-01 COMPLETE; next: 01-02 (labels + SMILES join + ECFP4 libs)
+- **Plan:** 01-02 COMPLETE; next: 01-03 (structure-only floor: LR+RF on ECFP4)
 - **Status:** Executing Phase 01
-- **Progress:** `[############        ] 1/8 phases complete (P1: 1/6 plans done)`
+- **Progress:** `[############        ] 1/8 phases complete (P1: 2/6 plans done)`
 
-**Next action:** Execute plan 01-02 (Wave 0: shared data-prep libs)
+**Next action:** Execute plan 01-03 (Wave 1: structure-only floor)
 
 ## Performance Metrics
 
@@ -65,6 +65,14 @@ Plan: 2 of 6
 3. **Negative result is publishable** (stop-and-reframe vs stop-and-abandon). Confirm before P1/P4 gates are acted on.
 
 (Operational sign-offs handled in P0: approve adding `squidpy`/Tangram to env; sign off dataset-accession corrections before download scripts.)
+
+### Plan 01-02 decisions (locked)
+
+- **labels.py returns plain DataFrames** (not LabelTable NamedTuple) — test contracts call `.set_index()` directly on return value; LabelTable defined for callers needing richer metadata.
+- **SMILES dili_binary assignment** uses `pos_mask[keep_mask].astype(int).values` to prevent pandas index misalignment after filtering.
+- **TDC fallback is a callable hook** in join_smiles_cascade (not a pytdc import) — keeps module pure, no network call at import time.
+- **smiles_to_ecfp4** returns (fps (n,2048) uint8, valid_mask (n,) bool); zero-vector + valid_mask=False for MolFromSmiles None (T-01-03).
+- **EDA-01 requirement met**: 5 plan-01 Nyquist tests now GREEN.
 
 ### Plan 01-01 decisions (locked)
 
@@ -120,5 +128,5 @@ Plan: 2 of 6
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Completed 01-01-PLAN.md
-- **Resume with:** Execute plan 01-02 (Wave 0: labels + SMILES join + ECFP4 library)
+- **Stopped at:** Completed 01-02-PLAN.md
+- **Resume with:** Execute plan 01-03 (Wave 1: structure-only floor — LR+RF on ECFP4)
