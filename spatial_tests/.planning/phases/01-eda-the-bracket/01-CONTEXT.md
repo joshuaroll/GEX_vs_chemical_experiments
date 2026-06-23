@@ -1,7 +1,8 @@
 # Phase 1: EDA (the bracket) - Context
 
 **Gathered:** 2026-06-22
-**Status:** Ready for planning
+**Reframed:** 2026-06-23 (post-Halt-Gate-2 — see "Reframe" decisions D-06/D-07 and the Phase 1 Outcome note)
+**Status:** Ready for replanning (gap-closure)
 
 <domain>
 ## Phase Boundary
@@ -23,6 +24,33 @@ only here.
 
 <decisions>
 ## Implementation Decisions
+
+### Reframe (2026-06-23, post-Halt-Gate-2) — supersedes the footing of D-02/D-03/D-05
+
+The first execution fired Halt Gate 2, but the investigation showed the driving
+number was a **drug-leakage artifact**: the measured ceiling used profile-level CV
+while one drug carries up to 784 profiles, so a drug's profiles straddled
+train/test and the model memorized drug identity. Honest decomposition (now
+reproducible in `P1_eda.md`): profile-level measured AUROC is **0.912 leaky vs
+0.605 drug-disjoint** (+0.31 inflation); the honest measured ceiling is
+**comparable to the structure floor (~0.61 each)**. Two reframe decisions:
+
+- **D-06 (unit of analysis):** The PRIMARY floor↔ceiling comparison is **drug-level,
+  drug-disjoint (group-aware CV; never split a drug's profiles across train/test)** —
+  the drug is the unit we predict toxicity for. Report **profile-level drug-disjoint
+  as a supporting, better-powered sensitivity view**. Both floor and ceiling must sit
+  on the SAME drug-disjoint footing (this fixes the original mismatch where the floor
+  was drug-level but the ceiling was leaky profile-level). NOTE: the planner must add
+  the **floor's profile-level-disjoint number** (currently only the ceiling has one)
+  so the profile-level sensitivity view is a true head-to-head. D-02's gate now
+  operates on this drug-level drug-disjoint comparison.
+
+- **D-07 (leakage discipline = GUIDANCE, not a hard rule):** Drug-disjoint
+  (group-aware) CV is the **recommended** evaluation for every ceiling/floor/AUROC
+  comparison across the milestone (incl. Phase 2+ predicted-signature evals);
+  enforcement is left to each phase's planner, not locked as a project hard rule. The
+  +0.31 benchmark-leakage finding stays documented inside `P1_eda.md` (leakage
+  decomposition table) — no separate primary writeup is required.
 
 ### Scope (which organ/species this pass brackets)
 - **D-01:** Run the full bracket for **liver, human only** this pass. The other
@@ -93,6 +121,12 @@ only here.
 - `results/tables/P0_orthologs.md` — human-mouse-rat one-to-one ortholog map + dropped fraction.
 - `MANIFEST.md` — dataset paths/SHAs/licenses; extend it with the reused LINCS ceiling provenance (D-05).
 
+### Phase 1 first-execution outputs (reframe inputs — MUST read before replanning)
+- `results/tables/P1_eda.md` — the produced bracket: floor/ceiling/gap+CI, **leakage decomposition** (0.912 leaky vs 0.605 drug-disjoint, +0.31), **Hanley-McNeil power**, region + cross-species diagnostics.
+- `.planning/phases/01-eda-the-bracket/HALT_REASON.md` — Halt Gate 2 fired → reframe (D-02); leads with the leakage finding.
+- `.planning/phases/01-eda-the-bracket/01-06-SUMMARY.md` — the full arc incl. the checkpoint investigation and the ceiling-leakage fix.
+- `scripts/run_p1_eda.py` + `src/spatial/eda/ceiling.py` — the driver and the now-leakage-free `compute_ceiling` (StratifiedGroupKFold + StandardScaler) to extend per D-06.
+
 ### Reused sibling (v0.5 dili_downstream) artifacts — external inputs, log in MANIFEST
 - `../dili_downstream/data/processed/wangli_measured_de.npy` — measured LINCS L1000 DE (the liver ceiling input).
 - `../dili_downstream/data/processed/wangli_profiles.csv` — profile metadata for the above.
@@ -137,7 +171,9 @@ only here.
 - **Rodent structure-floor + rodent labels** — deferred to the rodent pass.
 - **Rodent toxicogenomics ceiling** (Open TG-GATEs / DrugMatrix) — acquire + bracket when the rodent arm starts.
 
-None — discussion stayed within phase scope (deferrals above are sequencing, not new capabilities).
+### Considered this reframe but NOT selected (revisit at the next gate review)
+- **Power the gate (expand negatives).** The shared set has only 38 negative drugs (drug-level gate underpowered: MDE 0.198 > observed 0.177). DILIrank ∪ DILIst / relaxing Ambiguous / scaffold-level were offered but deferred. Flag for the next gate review.
+- **Redefine Halt Gate 2 / milestone go-no-go.** Not reframed this pass. ⚠ **Open flag for the next gate decision:** the honest measured ceiling ≈ the structure floor (~0.61), so the milestone bet (a *predicted*, region-resolved signature beats structure) is a steep hill. Phase 2 remains alive because the predicted-signature question is still untested — but the bracket says measured biology gives no drug-level lift over structure here. Surface this when deciding whether/how to proceed past the halt.
 
 </deferred>
 

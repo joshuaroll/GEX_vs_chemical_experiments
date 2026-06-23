@@ -99,3 +99,38 @@
 - Kidney / brain / heart EDA brackets — at each organ's training phase (heart last).
 - Rodent structure-floor + rodent labels — rodent pass.
 - Rodent toxicogenomics ceiling (Open TG-GATEs / DrugMatrix) — rodent pass.
+
+---
+
+# Reframe session (2026-06-23, post-Halt-Gate-2)
+
+**Date:** 2026-06-23
+**Trigger:** Halt Gate 2 fired on first execution; checkpoint investigation found the measured ceiling (0.56) was a drug-leakage artifact (profile CV splitting one drug's up-to-784 profiles across train/test). Honest decomposition: profile-level measured AUROC 0.912 leaky vs 0.605 drug-disjoint (+0.31); measured ≈ structure floor (~0.61) at the fair level.
+**Areas discussed:** Unit of analysis; Leakage as a result + downstream discipline
+**Areas offered but not selected:** Power the gate (expand negatives); Redefine Halt Gate 2 / milestone go-no-go
+
+## Unit of analysis (→ D-06)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Drug-level primary, profile-level support | Gate on drug-level drug-disjoint AUROC (the unit predicted); report profile-level drug-disjoint as a powered sensitivity view. | ✓ |
+| Profile-level primary | Gate on drug-disjoint profile-level AUROC (more samples but over-weights high-profile-count drugs; not the per-drug unit). | |
+| Report both, gate on neither alone | Fire only if both units agree. | |
+
+**User's choice:** Drug-level primary, profile-level support
+**Notes:** Floor and ceiling must sit on the same drug-disjoint footing; planner must add the floor's profile-level-disjoint number for a true head-to-head.
+
+## Leakage as a result + downstream discipline (→ D-07)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Lock project-wide rule + primary writeup | Hard rule: drug-grouped CV for every comparison Phases 1-5; +0.31 finding as a primary writeup. | |
+| P1 + Phase 2 only, note in P1_eda.md | Apply to P1/P2; finding documented in P1_eda.md. | |
+| Guidance, not a hard rule | Document drug-disjoint as recommended guidance; enforcement left to each phase's planner. | ✓ |
+
+**User's choice:** Guidance, not a hard rule
+**Notes:** Leakage finding stays documented in P1_eda.md (leakage decomposition table); no separate primary writeup forced; not a locked hard rule.
+
+## Deferred / flagged (reframe)
+- Power the gate (expand negatives: DILIrank ∪ DILIst, relax Ambiguous, scaffold-level) — deferred to next gate review (38 negatives → underpowered).
+- Redefine Halt Gate 2 / milestone go-no-go — not reframed; ⚠ open flag: honest measured ceiling ≈ structure floor, so the predicted-signature milestone bet is a steep hill (Phase 2 stays alive as the still-untested question).
