@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-21T00:10:00Z"
-last_activity: 2026-06-21
+status: planning
+stopped_at: Plan 04 COMPLETE — Phase 0 complete (MANIFEST.md, P0_coverage.md, P0_orthologs.md, squidpy 1.8.2 installed; 132 tests pass)
+last_updated: "2026-06-23T00:32:15.052Z"
+last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
@@ -22,14 +23,14 @@ progress:
 - **Project:** Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
 - **Root:** `/raid/home/joshua/projects/GEX_vs_chemical_experiments/spatial_tests/` (subdir of umbrella repo `GEX_vs_chemical_experiments`; no own `.git`).
 - **Core value:** Does a predicted, region-resolved molecular response signature predict organ-specific drug toxicity better than chemical structure alone, and does that signal translate across species (rodent → human)?
-- **Current focus:** Phase 0 — Dataset acquisition & MANIFEST.
+- **Current focus:** Phase 1 — EDA (the bracket). Phase 0 COMPLETE (4 organs, 151 tests pass).
 - **Isolation note:** This is a standalone GSD project. NEVER read/write `/raid/home/joshua/.planning` (separate, halted "liver" v0.5 project).
 
 ## Current Position
 
-- **Phase:** 0 — Dataset acquisition & MANIFEST (P0) — **COMPLETE**
-- **Plan:** 04 COMPLETE (final plan in P0)
-- **Status:** Phase 0 done; proceed to Phase 1 (EDA — the bracket)
+- **Phase:** 1
+- **Plan:** Not started
+- **Status:** Ready to plan
 - **Progress:** `[##########          ] 1/8 phases complete (P0 all 4/4 plans done)`
 
 **Next action:** Begin Phase 1 EDA (/gsd-plan-phase 1 or similar)
@@ -39,7 +40,7 @@ progress:
 | Metric | Value |
 |--------|-------|
 | Phases total | 8 |
-| Phases complete | 0 |
+| Phases complete | 1 (P0) |
 | Requirements total | 19 |
 | Halt gates | 6 (phases 0,1,2,3,4,6) |
 
@@ -87,18 +88,20 @@ progress:
 ### Plan 02 decisions (locked)
 
 - **P0 brain toxicity labels = SIDER meddra_all_se.tsv.gz (SOC filter at use-time)**; Lane-Ekins seizure and DNT-IVB DEFERRED to Phase 1.
-- **DIRIL kidney supplement TODO note written** (Elsevier journal gate 404); kidney labels must be resolved before Phase 4. Never fabricated (XC-01).
+- **DIRIL kidney supplement TODO note written** (Elsevier journal gate 404); kidney labels must be resolved before Phase 4. Never fabricated (XC-01). → **SUPERSEDED 2026-06-21:** DIRIL ACQUIRED from the FDA (`data/raw/labels/diril/diril_dataset_508.xlsx`, 317 drugs w/ SMILES + binary DIRI); TODO removed. The Elsevier candidate had the wrong article S-number.
 - **DILIst/DILIrank acquired via sibling SHA-copy** (FDA bot protection blocked network; sibling has SHA-verified copies; data is real).
 - **Figshare MD5 verification**: both Yu liver files (L5/L18) passed MD5 check.
 - **13 spatial datasets downloaded**; KPMP GEO supplementary (4.87 GB) succeeded; KPMP portal ToS was not needed.
-- **chen_brain_mtg expected_files corrected** in registry: was `GSE200474_RAW.tar` (404), now `GSE200474_Deseq2_...txt.gz` (actual GEO suppl file).
+- **chen_brain_mtg expected_files corrected** in registry: was `GSE200474_RAW.tar` (404), now `GSE200474_Deseq2_...txt.gz` (actual GEO suppl file). → **SUPERSEDED 2026-06-21:** GSE200474 was a WRONG-ACCESSION error (it is ALS iPSC motor-neuron bulk RNA-seq, not MTG Visium). Corrected to **GSE220442** (real Chen 2022 MTG Visium; 6 sections, 36,601 genes, 99.8% coverage). `expected_files=("GSE220442_counts_and_images.tar.gz",)`.
 
 ### Todos / watch items
 
-- DIRIL kidney labels: resolve supplement URL before Phase 4 (see data/raw/labels/diril/DIRIL_TODO.txt).
+- ~~DIRIL kidney labels~~ DONE 2026-06-21 — acquired from FDA (diril_dataset_508.xlsx). TODO note removed.
+- DICTrank heart labels acquired (FDA, 1318 drugs) but have NO SMILES — needs a name→structure (PubChem/DrugBank) join before the structure-only baseline (Phase 4).
 - `src/spatial/region_signature.py` holds the `NotImplementedError` seam — must be replaced with the real frozen-checkpoint call in Phase 2, not before.
 - Extend `src/spatial/` (132 passing tests now); do not rebuild. New files: tox_head.py [P2], splits.py [P3], train.py/eval.py [P4].
-- 5 datasets with non-standard archive formats (no feature matrix accessible): abedini_kidney, canela_kidney, maynard_dlpfc, chen_brain_mtg, kanemaru_heart. Whole-transcriptome flag confirmed by registry; gene-count confirmation via extraction at Phase 1.
+- Demoted to usable_as_input=False (no usable standard counts): abedini_kidney (images-only tar), canela_kidney (long-read isoform), maynard_dlpfc (metadata-only), kanemaru_heart (EGA controlled, empty). chen_brain_mtg is NOW a real GSE220442 Visium input. A content/shape guard (`src/spatial/data_validation.py` + `tests/test_data_validation.py`) enforces counts-presence for every usable_as_input dataset and fires Halt Gate 1 in the driver on a present-but-empty/wrong file.
+- 8 usable_as_input inputs, all counts-verified on disk: yu2022_liver, andrews_liver, lake_kpmp_kidney, chen_brain_mtg, kuppe_heart, gse272564_mouse_liver_ctrl, gse233983_mouse_brain, gse252772_mouse_kidney (.rds — needs R→anndata conversion).
 - gse252772_mouse_kidney: R .rds.gz files only — no Python-readable feature matrix without conversion. Needs `rpy2` or `anndata2ri` at Phase 1.
 
 ### Blockers
@@ -107,6 +110,6 @@ progress:
 
 ## Session Continuity
 
-- **Last activity:** 2026-06-21
+- **Last activity:** 2026-06-23
 - **Stopped at:** Plan 04 COMPLETE — Phase 0 complete (MANIFEST.md, P0_coverage.md, P0_orthologs.md, squidpy 1.8.2 installed; 132 tests pass)
 - **Resume with:** Phase 1 EDA — /gsd-plan-phase 1
