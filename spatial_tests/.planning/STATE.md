@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md (structure-only floor: LR+RF on ECFP4)
-last_updated: "2026-06-23T03:18:42Z"
+stopped_at: Completed 01-04-PLAN.md (measured-biology ceiling + paired bootstrap gap test)
+last_updated: "2026-06-23T03:25:00Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 10
-  completed_plans: 6
-  percent: 60
+  completed_plans: 7
+  percent: 70
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -32,11 +32,11 @@ Phase: 01 (eda-the-bracket) — EXECUTING
 Plan: 3 of 6
 
 - **Phase:** 1
-- **Plan:** 01-03 COMPLETE; next: 01-04 (measured-biology ceiling: participation ratio, MI, AUROC)
+- **Plan:** 01-04 COMPLETE; next: 01-05 (region diagnostics: SVG retention, basal similarity, OOD)
 - **Status:** Executing Phase 01
-- **Progress:** `[############        ] 1/8 phases complete (P1: 3/6 plans done)`
+- **Progress:** `[##############      ] 1/8 phases complete (P1: 4/6 plans done)`
 
-**Next action:** Execute plan 01-04 (Wave 1: measured-biology ceiling)
+**Next action:** Execute plan 01-05 (Wave 1: region diagnostics)
 
 ## Performance Metrics
 
@@ -65,6 +65,13 @@ Plan: 3 of 6
 3. **Negative result is publishable** (stop-and-reframe vs stop-and-abandon). Confirm before P1/P4 gates are acted on.
 
 (Operational sign-offs handled in P0: approve adding `squidpy`/Tangram to env; sign off dataset-accession corrections before download scripts.)
+
+### Plan 01-04 decisions (locked)
+
+- **compute_ceiling drug-level aggregation**: profile-level LR OOF probs first, then mean per `compound_name` (lowercase) before `roc_auc_score`. Pitfall-8 compliance is internal to the library, not caller's responsibility.
+- **gate_fires = ci_lower <= 0** (inclusive): matches D-02 "CI includes 0" wording.
+- **NaN-sentinel for degenerate bootstrap draws**: `gaps[i] = nan` in loop; `valid_gaps = gaps[~np.isnan(gaps)]` after loop.
+- **load_ceiling does not catch FileNotFoundError**: propagates so run_p1_eda.py can print "no measured ceiling -- floor only" per D-05.
 
 ### Plan 01-03 decisions (locked)
 
@@ -135,5 +142,5 @@ Plan: 3 of 6
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Completed 01-03-PLAN.md
-- **Resume with:** Execute plan 01-04 (Wave 1: measured-biology ceiling — participation ratio, MI, AUROC)
+- **Stopped at:** Completed 01-04-PLAN.md
+- **Resume with:** Execute plan 01-05 (Wave 1: region diagnostics — SVG retention, basal similarity, OOD distance)

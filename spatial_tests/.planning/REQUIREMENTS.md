@@ -171,7 +171,7 @@ Supporting detail attributed inline. v1 = all 8 phase requirements (this milesto
 | DATA-02 | P0 | Complete |
 | DATA-03 | P0 | Complete |
 | EDA-01 | P1 | Pending |
-| EDA-02 | P1 | Pending |
+| EDA-02 | P1 | Complete |
 | EDA-03 | P1 | Pending |
 | WIRE-01 | P2 | Pending |
 | WIRE-02 | P2 | Pending |
