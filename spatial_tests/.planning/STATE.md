@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md (measured-biology ceiling + paired bootstrap gap test)
-last_updated: "2026-06-23T03:25:00Z"
+stopped_at: Completed 01-05-PLAN.md (region diagnostics -- Moran's I SVGs, basal similarity, ortholog cross-species correlation, 978-landmark Mahalanobis OOD)
+last_updated: "2026-06-23T03:31:00Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 8
+  percent: 80
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -32,11 +32,11 @@ Phase: 01 (eda-the-bracket) — EXECUTING
 Plan: 3 of 6
 
 - **Phase:** 1
-- **Plan:** 01-04 COMPLETE; next: 01-05 (region diagnostics: SVG retention, basal similarity, OOD)
+- **Plan:** 01-05 COMPLETE; next: 01-06 (run_p1_eda.py script + results/tables/P1_eda.md)
 - **Status:** Executing Phase 01
-- **Progress:** `[##############      ] 1/8 phases complete (P1: 4/6 plans done)`
+- **Progress:** `[################    ] 1/8 phases complete (P1: 5/6 plans done)`
 
-**Next action:** Execute plan 01-05 (Wave 1: region diagnostics)
+**Next action:** Execute plan 01-06 (Wave 2: run_p1_eda.py script, halt gate evaluation, P1_eda.md report)
 
 ## Performance Metrics
 
@@ -125,6 +125,13 @@ Plan: 3 of 6
 - **13 spatial datasets downloaded**; KPMP GEO supplementary (4.87 GB) succeeded; KPMP portal ToS was not needed.
 - **chen_brain_mtg expected_files corrected** in registry: was `GSE200474_RAW.tar` (404), now `GSE200474_Deseq2_...txt.gz` (actual GEO suppl file). → **SUPERSEDED 2026-06-21:** GSE200474 was a WRONG-ACCESSION error (it is ALS iPSC motor-neuron bulk RNA-seq, not MTG Visium). Corrected to **GSE220442** (real Chen 2022 MTG Visium; 6 sections, 36,601 genes, 99.8% coverage). `expected_files=("GSE220442_counts_and_images.tar.gz",)`.
 
+### Plan 01-05 decisions (locked)
+
+- **OOD method = Mahalanobis, 978-gene landmark subspace, alpha=1e-2** (resolves "Claude's Discretion" from CONTEXT.md; baked into OOD_METHOD constant in region_diagnostics.py for P1_eda.md reporting).
+- **squidpy imported lazily inside compute_moran_svgs** (try/except ImportError); module-level import avoided (Pitfall 9 compliance).
+- **human_mouse_liver_correlation raises ValueError** (not silent NaN) when < 2 genes match -- diagnostic over silent failure.
+- **basal_similarity_matrix accepts dict or ndarray+labels**; sparse toarray guard applied (mirrors pseudobulk.py pattern).
+
 ### Todos / watch items
 
 - ~~DIRIL kidney labels~~ DONE 2026-06-21 — acquired from FDA (diril_dataset_508.xlsx). TODO note removed.
@@ -142,5 +149,5 @@ Plan: 3 of 6
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Completed 01-04-PLAN.md
-- **Resume with:** Execute plan 01-05 (Wave 1: region diagnostics — SVG retention, basal similarity, OOD distance)
+- **Stopped at:** Completed 01-05-PLAN.md
+- **Resume with:** Execute plan 01-06 (Wave 2: run_p1_eda.py script -- floor, ceiling, diagnostics sub-commands; P1_eda.md report; Halt Gate 2 evaluation)

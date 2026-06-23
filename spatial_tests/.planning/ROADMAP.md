@@ -46,7 +46,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   - [x] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01) [DONE 2026-06-23]
   - [x] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01) [DONE 2026-06-23]
   - [x] 01-04-PLAN.md — Wave 1: measured ceiling (participation ratio, per-gene MI, AUROC) + paired-bootstrap gap CI (EDA-02) [DONE 2026-06-23]
-  - [ ] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03)
+  - [x] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03) [DONE 2026-06-23]
   - [ ] 01-06-PLAN.md — Wave 2: run_p1_eda.py driver on real data → P1_eda.md + Halt Gate 2 (EDA-01/02/03)
 
 ### Phase 2: MultiDCP wiring & toxicity head
