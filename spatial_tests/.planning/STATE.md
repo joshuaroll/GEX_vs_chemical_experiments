@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-06-23T01:18:30.857Z"
+stopped_at: Completed 01-01-PLAN.md (Wave-0 Nyquist tests + MANIFEST provenance)
+last_updated: "2026-06-23T03:05:46Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 10
-  completed_plans: 4
-  percent: 40
+  completed_plans: 5
+  percent: 50
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -23,17 +23,20 @@ progress:
 - **Project:** Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
 - **Root:** `/raid/home/joshua/projects/GEX_vs_chemical_experiments/spatial_tests/` (subdir of umbrella repo `GEX_vs_chemical_experiments`; no own `.git`).
 - **Core value:** Does a predicted, region-resolved molecular response signature predict organ-specific drug toxicity better than chemical structure alone, and does that signal translate across species (rodent → human)?
-- **Current focus:** Phase 1 — EDA (the bracket). Phase 0 COMPLETE (4 organs, 151 tests pass).
+- **Current focus:** Phase 01 — eda-the-bracket
 - **Isolation note:** This is a standalone GSD project. NEVER read/write `/raid/home/joshua/.planning` (separate, halted "liver" v0.5 project).
 
 ## Current Position
 
-- **Phase:** 1
-- **Plan:** Not started
-- **Status:** Ready to execute
-- **Progress:** `[##########          ] 1/8 phases complete (P0 all 4/4 plans done)`
+Phase: 01 (eda-the-bracket) — EXECUTING
+Plan: 2 of 6
 
-**Next action:** Begin Phase 1 EDA (/gsd-plan-phase 1 or similar)
+- **Phase:** 1
+- **Plan:** 01-01 COMPLETE; next: 01-02 (labels + SMILES join + ECFP4 libs)
+- **Status:** Executing Phase 01
+- **Progress:** `[############        ] 1/8 phases complete (P1: 1/6 plans done)`
+
+**Next action:** Execute plan 01-02 (Wave 0: shared data-prep libs)
 
 ## Performance Metrics
 
@@ -62,6 +65,12 @@ progress:
 3. **Negative result is publishable** (stop-and-reframe vs stop-and-abandon). Confirm before P1/P4 gates are acted on.
 
 (Operational sign-offs handled in P0: approve adding `squidpy`/Tangram to env; sign off dataset-accession corrections before download scripts.)
+
+### Plan 01-01 decisions (locked)
+
+- **Wave-0 Nyquist RED state confirmed**: 6 new EDA test files fail import on `src.spatial.eda` (expected; modules written in plans 02-05). 124 pre-existing tests unaffected.
+- **All 6 SHA256s matched on-disk** before writing to MANIFEST.md (XC-01 clean; no drift).
+- **tests/spatial/__init__.py pre-existed** as empty file; no action needed.
 
 ### Plan 01 decisions (locked)
 
@@ -111,5 +120,5 @@ progress:
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Phase 1 context gathered
-- **Resume with:** Phase 1 EDA — /gsd-plan-phase 1
+- **Stopped at:** Completed 01-01-PLAN.md
+- **Resume with:** Execute plan 01-02 (Wave 0: labels + SMILES join + ECFP4 library)

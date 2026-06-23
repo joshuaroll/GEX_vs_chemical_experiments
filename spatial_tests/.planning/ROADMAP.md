@@ -42,7 +42,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   4. `results/tables/P1_eda.md` states the floor-ceiling gap, region distinguishability, and human-rodent basal concordance.
 **Halt gate**: HALT GATE 2 — floor-ceiling gap near zero for the organ → write `HALT_REASON.md`, reframe before training.
 **Plans**: 6 plans
-  - [ ] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03)
+  - [x] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03) [DONE 2026-06-23]
   - [ ] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01)
   - [ ] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01)
   - [ ] 01-04-PLAN.md — Wave 1: measured ceiling (participation ratio, per-gene MI, AUROC) + paired-bootstrap gap CI (EDA-02)
