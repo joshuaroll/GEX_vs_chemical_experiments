@@ -16,8 +16,9 @@ Panels (whole_transcriptome=False) and non-input entries are informational only 
 | abedini_kidney | kidney | human | Visium | N/A | N/A | N/A (no readable matrix) |
 | canela_kidney | kidney | human | Visium | N/A | N/A | N/A (no readable matrix) |
 | maynard_dlpfc | brain | human | Visium | N/A | N/A | N/A (no readable matrix) |
-| chen_brain_mtg | brain | human | Visium | N/A | N/A | N/A (no readable matrix) |
-| kanemaru_heart | heart | human | Visium | N/A | N/A | N/A (no readable matrix) |
+| chen_brain_mtg | brain | human | Visium | 36601 | 99.8% | PASS |
+| kuppe_heart | heart | human | Visium | 15730 | 83.4% | PASS |
+| kanemaru_heart | heart | human | Visium | N/A | N/A | N/A (EGA controlled-access; usable_as_input=False) |
 | gse280652_apap_liver | liver | mouse | Visium | 32245 | 0.1% | INFO (rodent validation n_genes=32245) |
 | gse272564_apap_liver | liver | mouse | Visium | 32245 | 0.1% | INFO (rodent validation n_genes=32245) |
 | gse272564_mouse_liver_ctrl | liver | mouse | Visium | 32245 | 0.1% | PASS (rodent n_genes=32245) |
