@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-05-PLAN.md (region diagnostics -- Moran's I SVGs, basal similarity, ortholog cross-species correlation, 978-landmark Mahalanobis OOD)
-last_updated: "2026-06-23T03:31:00Z"
+status: halted
+stopped_at: "Phase 1 executed (6/6 plans); HALT GATE 2 FIRED on 01-06 → stop-and-REFRAME (D-02). Phase 2 BLOCKED pending reframe."
+last_updated: "2026-06-23T04:30:00Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,15 +28,17 @@ progress:
 
 ## Current Position
 
-Phase: 01 (eda-the-bracket) — EXECUTING
-Plan: 3 of 6
+Phase: 01 (eda-the-bracket) — EXECUTED, **HALTED (Halt Gate 2 fired)**
+Plan: 6 of 6 (all executed)
 
 - **Phase:** 1
-- **Plan:** 01-05 COMPLETE; next: 01-06 (run_p1_eda.py script + results/tables/P1_eda.md)
-- **Status:** Executing Phase 01
-- **Progress:** `[################    ] 1/8 phases complete (P1: 5/6 plans done)`
+- **Plan:** 01-06 COMPLETE (run_p1_eda.py + results/tables/P1_eda.md produced on real data)
+- **Status:** **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 is BLOCKED.**
+- **Progress:** `[##################  ] P1: 6/6 plans executed; outcome = halt/reframe`
 
-**Next action:** Execute plan 01-06 (Wave 2: run_p1_eda.py script, halt gate evaluation, P1_eda.md report)
+**Halt Gate 2 result (leakage-corrected):** structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES. Robust headline finding: the Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (profile-level 0.912 leaky vs 0.605 drug-disjoint); honest measured ≈ structure at the fair level; the drug-aggregated gate is underpowered (38 negative drugs). See `results/tables/P1_eda.md` + `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
+
+**Next action:** REFRAME (do NOT execute Phase 2). Discuss the reframe — center on (1) the benchmark drug-leakage finding, (2) a properly powered drug-disjoint comparison (expand negatives), (3) the unit of analysis (profile-level with drug-disjoint splits).
 
 ## Performance Metrics
 
@@ -125,6 +127,14 @@ Plan: 3 of 6
 - **13 spatial datasets downloaded**; KPMP GEO supplementary (4.87 GB) succeeded; KPMP portal ToS was not needed.
 - **chen_brain_mtg expected_files corrected** in registry: was `GSE200474_RAW.tar` (404), now `GSE200474_Deseq2_...txt.gz` (actual GEO suppl file). → **SUPERSEDED 2026-06-21:** GSE200474 was a WRONG-ACCESSION error (it is ALS iPSC motor-neuron bulk RNA-seq, not MTG Visium). Corrected to **GSE220442** (real Chen 2022 MTG Visium; 6 sections, 36,601 genes, 99.8% coverage). `expected_files=("GSE220442_counts_and_images.tar.gz",)`.
 
+### Plan 01-06 decisions (locked) — HALT GATE 2
+
+- **Ceiling CV must be drug-grouped.** Original profile-level `StratifiedKFold` leaked drug identity (one drug = up to 784 profiles) → meaningless 0.56 ceiling. Fixed to `StratifiedGroupKFold` over compound + per-fold `StandardScaler` (now unit-consistent with the drug-level floor). Honest ceiling = 0.434. Regression test `test_ceiling_no_drug_leakage` added (RED→GREEN).
+- **Halt Gate 2 FIRED** (gap −0.177, CI [−0.316, −0.033]) → **stop-and-REFRAME (D-02), user-confirmed.** Phase 2 BLOCKED.
+- **Headline finding (reproducible in P1_eda.md):** Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (0.912 leaky vs 0.605 drug-disjoint at profile level). Honest profile-level measured ceiling (0.605) ≈ structure floor (0.611). Framing is "no measured lift over structure; benchmark inflated", NOT "structure beats biology".
+- **Power:** 38 negative drugs; conservative min-detectable gap (0.198) > observed (0.177); gate significance rests on the paired bootstrap (thin margin). Reframe should expand negatives.
+- **Driver now reports leakage decomposition + Hanley-McNeil power** so the headline is reproducible from `run_p1_eda.py all` (seed=42).
+
 ### Plan 01-05 decisions (locked)
 
 - **OOD method = Mahalanobis, 978-gene landmark subspace, alpha=1e-2** (resolves "Claude's Discretion" from CONTEXT.md; baked into OOD_METHOD constant in region_diagnostics.py for P1_eda.md reporting).
@@ -144,10 +154,10 @@ Plan: 3 of 6
 
 ### Blockers
 
-- None currently.
+- **Phase 2 BLOCKED — Halt Gate 2 fired (D-02).** Do not start Phase 2 model wiring until the reframe is decided/approved. See `HALT_REASON.md`.
 
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Completed 01-05-PLAN.md
-- **Resume with:** Execute plan 01-06 (Wave 2: run_p1_eda.py script -- floor, ceiling, diagnostics sub-commands; P1_eda.md report; Halt Gate 2 evaluation)
+- **Stopped at:** Phase 1 fully executed (6/6 plans); Halt Gate 2 FIRED on 01-06 → reframe (D-02, user-confirmed).
+- **Resume with:** REFRAME discussion (NOT Phase 2). Use `/gsd-discuss-phase` or a milestone reframe to address: benchmark drug-leakage finding, powering a drug-disjoint comparison (expand negatives), and the unit of analysis. Phase 1 deliverable: `results/tables/P1_eda.md`; halt record: `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
