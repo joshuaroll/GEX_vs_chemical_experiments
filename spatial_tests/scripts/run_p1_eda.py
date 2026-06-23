@@ -458,16 +458,38 @@ def run_gap_and_gate(
     report_lines.append(
         f"**Shared drug set:** {n_shared} drugs (floor ECFP4 ∩ ceiling LINCS).\n\n"
     )
+    n_pos_shared = int(y_shared.sum())
+    n_neg_shared = int((y_shared == 0).sum())
     report_lines.append(
         "| Metric | Value |\n"
         "|--------|-------|\n"
         f"| Floor AUROC (LR, shared set) | {floor_auroc_shared:.4f} |\n"
-        f"| Ceiling AUROC (LR OOF, shared set) | {ceil_auroc_shared:.4f} |\n"
+        f"| Ceiling AUROC (drug-grouped OOF, shared set) | {ceil_auroc_shared:.4f} |\n"
         f"| Gap (ceiling - floor) | {bootstrap_result.gap_observed:+.4f} |\n"
         f"| 95% CI [lo, hi] | [{bootstrap_result.ci_lower:.4f}, {bootstrap_result.ci_upper:.4f}] |\n"
         f"| Bootstrap resamples (valid) | {bootstrap_result.n_resamples_valid:,} / 10,000 |\n"
+        f"| Shared-set class balance | {n_pos_shared} pos / {n_neg_shared} neg "
+        f"({n_pos_shared / n_shared:.1%} positive) |\n"
         f"| Halt Gate 2 | {gate_str} |\n"
         "\n"
+    )
+    report_lines.append(
+        "### Interpretation caveat (read before acting on the gate)\n\n"
+        "The ceiling AUROC above is a **leakage-free, drug-grouped** estimate "
+        "(StratifiedGroupKFold over compound; a drug's profiles never straddle "
+        "train/test). An earlier profile-level CV inflated the ceiling via "
+        "per-drug memorization (one drug carries up to 784 profiles) and is not "
+        "used. Two limits bound how much this gate can say:\n\n"
+        f"1. **Underpowered drug-level set.** Only {n_neg_shared} negative drugs "
+        f"in the {n_shared}-drug shared set drive a wide CI; the test has little "
+        "power to resolve a small gap.\n"
+        "2. **Unit of analysis.** At the *profile* level (Wang/Li's published "
+        "setup) the measured DE reproduces their benchmark (AUROC ~0.79-0.93), "
+        "so a near-chance *drug-level* ceiling reflects the harder, "
+        "drug-disjoint, small-n comparison here -- **not** an absence of "
+        "measured-biology DILI signal. Treat a firing as 'inconclusive at the "
+        "drug level on this set', not as a clean biological null, when deciding "
+        "the D-02 reframe.\n\n"
     )
 
     return bootstrap_result
@@ -975,16 +997,56 @@ def _write_halt_reason(bootstrap_result: BootstrapResult) -> None:
     """Write HALT_REASON.md to the phase directory and log."""
     PHASE_DIR.mkdir(parents=True, exist_ok=True)
     halt_path = PHASE_DIR / "HALT_REASON.md"
+
+    # gate_fires == (ci_lower <= 0). Two distinct firing regimes:
+    #   - CI entirely below 0 (ci_upper < 0): gap significantly NEGATIVE --
+    #     structure beats the leakage-free measured ceiling at the drug level.
+    #   - CI straddles 0 (ci_lower <= 0 <= ci_upper): inconclusive -- the gap is
+    #     not significantly positive.
+    ci_below_zero = bootstrap_result.ci_upper < 0
+    if ci_below_zero:
+        title = (
+            "Gate 2 Fired -- Structure Floor Significantly Exceeds Measured Ceiling "
+            "(drug-level)"
+        )
+        ci_clause = "ci_upper < 0 -- CI entirely below 0 (gap significantly negative)"
+        interp = (
+            "The 95% paired bootstrap CI of (ceiling AUROC - floor AUROC) lies "
+            "entirely below 0. On the drug-disjoint, leakage-free shared set, the "
+            "structure-only ECFP4 floor significantly OUTperforms the measured "
+            "LINCS L1000 DE ceiling for liver DILI prediction -- measured biology "
+            "adds no drug-level generalizable lift over chemical structure here."
+        )
+    else:
+        title = "Gate 2 Fired -- Floor-Ceiling AUROC Gap Not Significantly Positive"
+        ci_clause = "ci_lower <= 0 -- CI includes 0"
+        interp = (
+            "The 95% paired bootstrap CI of (ceiling AUROC - floor AUROC) includes "
+            "0. The measured-biology signal (LINCS L1000 DE) does not provide a "
+            "statistically distinguishable lift over the structure-only fingerprint "
+            "baseline for liver DILI prediction on the shared drug set."
+        )
+
     content = (
-        "# HALT: Gate 2 Fired -- Floor-Ceiling AUROC Gap Not Significantly Positive\n\n"
+        f"# HALT: {title}\n\n"
         f"**Gap observed:** {bootstrap_result.gap_observed:+.4f} AUROC\n"
         f"**95% CI:** [{bootstrap_result.ci_lower:.4f}, {bootstrap_result.ci_upper:.4f}]\n"
-        f"**gate_fires:** True (ci_lower <= 0 -- CI includes 0)\n\n"
+        f"**gate_fires:** True ({ci_clause})\n\n"
         "## Interpretation\n\n"
-        "The 95% paired bootstrap CI of (ceiling AUROC - floor AUROC) includes 0. "
-        "This means the measured-biology signal (LINCS L1000 DE) does not provide a "
-        "statistically distinguishable lift over the structure-only fingerprint baseline "
-        "for liver DILI prediction on the shared drug set.\n\n"
+        f"{interp}\n\n"
+        "## Caveats (bound the strength of this conclusion)\n\n"
+        "- **Leakage-free ceiling.** The ceiling uses StratifiedGroupKFold over "
+        "compound (a drug's profiles never straddle train/test). A prior "
+        "profile-level CV inflated the ceiling via per-drug memorization (one drug "
+        "carries up to 784 profiles) and was discarded.\n"
+        "- **Underpowered.** The shared set is heavily positive-skewed (few negative "
+        "drugs), so the CI is wide and the gate is sensitive to small changes.\n"
+        "- **Unit of analysis.** At the profile level (Wang/Li's published setup) "
+        "the measured DE reproduces their benchmark (AUROC ~0.79-0.93). The "
+        "near-chance drug-level ceiling therefore reflects failure to generalize to "
+        "HELD-OUT DRUGS on this small set -- and suggests the profile-level "
+        "benchmark itself may be substantially drug-leakage-inflated -- rather than "
+        "a total absence of measured-biology DILI signal.\n\n"
         "## Decision per D-02\n\n"
         "**stop-and-REFRAME** (negative result is publishable, D-02 locked). "
         "Do NOT proceed to Phase 2 model training. Reframe the research question before "

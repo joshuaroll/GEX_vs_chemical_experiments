@@ -1,6 +1,6 @@
 # Phase 1 EDA Report: The Bracket (liver/human)
 
-**Generated:** 2026-06-23T03:58:27Z
+**Generated:** 2026-06-23T05:08:47Z
 **Sub-command:** all
 
 ## EDA-01: Structure-Only Floor (DILIrank, liver/human)
@@ -39,7 +39,7 @@
 |--------|-------|
 | PCA participation ratio (effective rank) | 18.5 |
 | MI fraction nonzero | 0.9366 |
-| Ceiling AUROC (drug-level, LR OOF) | 0.5588 |
+| Ceiling AUROC (drug-level, LR OOF) | 0.4336 |
 | n drugs (drug-level, ceiling) | 227 |
 
 ## Gap + Halt Gate 2 (EDA-01/02, D-02)
@@ -49,11 +49,19 @@
 | Metric | Value |
 |--------|-------|
 | Floor AUROC (LR, shared set) | 0.6106 |
-| Ceiling AUROC (LR OOF, shared set) | 0.5588 |
-| Gap (ceiling - floor) | -0.0518 |
-| 95% CI [lo, hi] | [-0.2135, 0.1164] |
+| Ceiling AUROC (drug-grouped OOF, shared set) | 0.4336 |
+| Gap (ceiling - floor) | -0.1770 |
+| 95% CI [lo, hi] | [-0.3161, -0.0326] |
 | Bootstrap resamples (valid) | 10,000 / 10,000 |
+| Shared-set class balance | 189 pos / 38 neg (83.3% positive) |
 | Halt Gate 2 | **FIRES** (stop-and-REFRAME per D-02) |
+
+### Interpretation caveat (read before acting on the gate)
+
+The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (StratifiedGroupKFold over compound; a drug's profiles never straddle train/test). An earlier profile-level CV inflated the ceiling via per-drug memorization (one drug carries up to 784 profiles) and is not used. Two limits bound how much this gate can say:
+
+1. **Underpowered drug-level set.** Only 38 negative drugs in the 227-drug shared set drive a wide CI; the test has little power to resolve a small gap.
+2. **Unit of analysis.** At the *profile* level (Wang/Li's published setup) the measured DE reproduces their benchmark (AUROC ~0.79-0.93), so a near-chance *drug-level* ceiling reflects the harder, drug-disjoint, small-n comparison here -- **not** an absence of measured-biology DILI signal. Treat a firing as 'inconclusive at the drug level on this set', not as a clean biological null, when deciding the D-02 reframe.
 
 ## EDA-03: Region Distinguishability (liver/human, yu2022 L5)
 
@@ -108,4 +116,4 @@
 
 
 ---
-*Run elapsed: 181.7s*
+*Run elapsed: 181.8s*

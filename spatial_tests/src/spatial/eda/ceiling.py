@@ -13,8 +13,11 @@ Policy (locked):
     - per_gene_mi: mutual_info_classif(discrete_features=False, n_neighbors=3).
       (RESEARCH Pattern 5)
     - compute_ceiling: aggregates measured-signature predictions to DRUG level
-      (mean across profiles) before AUROC (Pitfall 8). Uses LogisticRegression
-      + StratifiedKFold cross_val_predict for OOF probs, then roc_auc_score.
+      (mean across profiles) before AUROC (Pitfall 8). OOF probs come from a
+      StandardScaler + LogisticRegression pipeline under StratifiedGroupKFold
+      grouped by compound (leakage-free: a drug's profiles never straddle
+      train/test), then roc_auc_score. Profile-level StratifiedKFold would let
+      one drug's up-to-784 profiles leak across folds and inflate the ceiling.
     - If the measured DE file is absent, load_ceiling raises FileNotFoundError
       so the calling script can report "no measured ceiling -- floor only" for
       organs/species without measured data (D-05 honesty rule).
@@ -38,7 +41,13 @@ import pandas as pd
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.model_selection import (
+    StratifiedGroupKFold,
+    StratifiedKFold,
+    cross_val_predict,
+)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 log = logging.getLogger(__name__)
 
@@ -256,12 +265,44 @@ def compute_ceiling(
         drug_key = profiles["compound_name"].str.lower().str.strip().values
         unique_drugs = list(dict.fromkeys(drug_key))  # preserves insertion order
 
-        # Fit LR OOF probs at profile level first, then aggregate to drug level
-        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
-        lr = LogisticRegression(
-            max_iter=1000, class_weight="balanced", random_state=seed
+        # Leakage-free OOF probs: a single drug can contribute up to hundreds of
+        # profiles (the real Wang/Li set has one drug with 784). Profile-level
+        # StratifiedKFold splits those profiles across train/test, so the model
+        # memorizes drug identity and the "ceiling" is meaningless (inflated to
+        # ~0.91 profile-level, then a nonsense 0.56 after drug aggregation).
+        # StratifiedGroupKFold keeps every drug's profiles in one fold, so the
+        # held-out drug is genuinely unseen -- a fair drug-level ceiling that is
+        # unit-consistent with the floor (which already does drug-level CV).
+        # StandardScaler is fit per-fold inside the pipeline (978 LINCS genes
+        # have heterogeneous scale).
+        n_unique = len(unique_drugs)
+        clf = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(
+                max_iter=2000, class_weight="balanced", random_state=seed
+            ),
         )
-        oof_proba = cross_val_predict(lr, de, y, cv=cv, method="predict_proba")
+        eff_splits = min(n_splits, n_unique)
+        if eff_splits >= 2:
+            cv = StratifiedGroupKFold(
+                n_splits=eff_splits, shuffle=True, random_state=seed
+            )
+            oof_proba = cross_val_predict(
+                clf, de, y, cv=cv, groups=drug_key, method="predict_proba"
+            )
+        else:
+            # Degenerate: <2 distinct drugs -- no grouped split is possible.
+            oof_proba = cross_val_predict(
+                clf,
+                de,
+                y,
+                cv=StratifiedKFold(
+                    n_splits=max(2, min(n_splits, len(y))),
+                    shuffle=True,
+                    random_state=seed,
+                ),
+                method="predict_proba",
+            )
         profile_probs = oof_proba[:, 1]
 
         # Group by drug: mean prob and confirm one label per drug
