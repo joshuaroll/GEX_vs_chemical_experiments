@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md (Wave-0 shared data-prep libs)
-last_updated: "2026-06-23T03:12:57Z"
+stopped_at: Completed 01-03-PLAN.md (structure-only floor: LR+RF on ECFP4)
+last_updated: "2026-06-23T03:18:42Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 10
-  completed_plans: 5
-  percent: 50
+  completed_plans: 6
+  percent: 60
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -29,14 +29,14 @@ progress:
 ## Current Position
 
 Phase: 01 (eda-the-bracket) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 
 - **Phase:** 1
-- **Plan:** 01-02 COMPLETE; next: 01-03 (structure-only floor: LR+RF on ECFP4)
+- **Plan:** 01-03 COMPLETE; next: 01-04 (measured-biology ceiling: participation ratio, MI, AUROC)
 - **Status:** Executing Phase 01
-- **Progress:** `[############        ] 1/8 phases complete (P1: 2/6 plans done)`
+- **Progress:** `[############        ] 1/8 phases complete (P1: 3/6 plans done)`
 
-**Next action:** Execute plan 01-03 (Wave 1: structure-only floor)
+**Next action:** Execute plan 01-04 (Wave 1: measured-biology ceiling)
 
 ## Performance Metrics
 
@@ -65,6 +65,13 @@ Plan: 2 of 6
 3. **Negative result is publishable** (stop-and-reframe vs stop-and-abandon). Confirm before P1/P4 gates are acted on.
 
 (Operational sign-offs handled in P0: approve adding `squidpy`/Tangram to env; sign off dataset-accession corrections before download scripts.)
+
+### Plan 01-03 decisions (locked)
+
+- **compute_floor uses float32 cast on fps**: sklearn LR/RF accept float32 natively; halves memory vs float64 at n_drugs scale.
+- **auprc_base_rate == float(y.mean())**: PR no-skill baseline is positive prevalence by definition.
+- **floor_probabilities takes seed: int (not Sequence)**: plan 06 needs one aligned OOF vector per seed; caller iterates seeds if needed.
+- **RF n_jobs=-1**: deterministic via fixed random_state per seed; all cores used for cross_val_predict speed.
 
 ### Plan 01-02 decisions (locked)
 
@@ -128,5 +135,5 @@ Plan: 2 of 6
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Completed 01-02-PLAN.md
-- **Resume with:** Execute plan 01-03 (Wave 1: structure-only floor — LR+RF on ECFP4)
+- **Stopped at:** Completed 01-03-PLAN.md
+- **Resume with:** Execute plan 01-04 (Wave 1: measured-biology ceiling — participation ratio, MI, AUROC)
