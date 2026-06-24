@@ -136,7 +136,11 @@ log = logging.getLogger("run_p1_eda")
 from src.spatial.eda.labels import load_dilirank, load_dilist  # noqa: E402
 from src.spatial.eda.smiles_join import join_smiles_cascade  # noqa: E402
 from src.spatial.eda.fingerprints import smiles_to_ecfp4  # noqa: E402
-from src.spatial.eda.floor import compute_floor, floor_probabilities  # noqa: E402
+from src.spatial.eda.floor import (  # noqa: E402
+    compute_floor,
+    floor_probabilities,
+    floor_profile_disjoint_auroc,
+)
 from src.spatial.eda.ceiling import load_ceiling, compute_ceiling  # noqa: E402
 from src.spatial.eda.bootstrap import paired_bootstrap_auroc_gap, BootstrapResult  # noqa: E402
 from src.spatial.eda.region_diagnostics import (  # noqa: E402
@@ -239,6 +243,14 @@ def run_floor(report_lines: list[str]) -> dict:
         for name, prob in zip(valid_drug_names, floor_probs_arr)
     }
 
+    # Per-drug ECFP4 fingerprint lookup (name_lower -> float32 row) for the
+    # profile-level drug-disjoint head-to-head (D-06). Reuses the fingerprints and
+    # drug names already in scope -- no SMILES re-resolution, no recompute.
+    floor_fp_by_drug = {
+        name: fps_valid[i].astype("float32")
+        for i, name in enumerate(valid_drug_names)
+    }
+
     # --- DILIst secondary cross-check (D-04: "cheap: base rates + LR floor AUROC") ---
     try:
         dilist_df = load_dilist(str(DILIST_PATH))
@@ -311,6 +323,7 @@ def run_floor(report_lines: list[str]) -> dict:
     return {
         "floor_result": floor_result,
         "floor_probs_by_drug": floor_probs_by_drug,
+        "floor_fp_by_drug": floor_fp_by_drug,
         "smiles_df": smiles_df,
         "labels_df": labels_df,
         "coverage_flag": coverage_flag,
@@ -454,6 +467,9 @@ def run_ceiling(report_lines: list[str]) -> Optional[dict]:
     return {
         "ceiling_result": ceiling_result,
         "labels_df": labels_df,
+        "de_aligned": de_aligned,
+        "y_profiles": y_profiles,
+        "drug_key": drug_key,
     }
 
 
@@ -587,6 +603,95 @@ def run_gap_and_gate(
         "is marginal (see Power above). Treat this as 'measured biology adds no "
         "lift over structure, benchmark is leakage-inflated', not as a clean "
         "'structure beats biology' result.\n\n"
+    )
+
+    # ------------------------------------------------------------------
+    # Profile-level drug-disjoint head-to-head (supporting sensitivity view, D-06)
+    # ------------------------------------------------------------------
+    # Expand each aligned profile to ITS DRUG's ECFP4 fingerprint so the structure
+    # floor sits on the SAME aligned profile rows and SAME StratifiedGroupKFold drug
+    # folds (seed=42) the ceiling's _leakage_decomposition uses -- a true head-to-head.
+    floor_fp_by_drug = floor_data["floor_fp_by_drug"]
+    drug_key = ceiling_data["drug_key"]
+    y_profiles = ceiling_data["y_profiles"]
+
+    fps_rows = []
+    y_rows = []
+    groups_rows = []
+    for i in range(len(drug_key)):
+        fp = floor_fp_by_drug.get(drug_key[i])
+        if fp is None:
+            continue  # drug has no ECFP4 fingerprint (not in the floor-covered set)
+        fps_rows.append(fp)
+        y_rows.append(int(y_profiles[i]))
+        groups_rows.append(drug_key[i])
+
+    n_kept = len(fps_rows)
+    n_kept_drugs = len(set(groups_rows))
+    log.info(
+        "Profile-level drug-disjoint head-to-head: %d profiles kept from %d drugs "
+        "(intersection of ceiling-aligned profiles and floor ECFP4-covered drugs).",
+        n_kept, n_kept_drugs,
+    )
+
+    if n_kept >= 10 and n_kept_drugs >= 2:
+        fps_prof = np.asarray(fps_rows, dtype=np.float32)
+        y_kept = np.asarray(y_rows, dtype=int)
+        groups_kept = np.asarray(groups_rows)
+
+        floor_auroc_profile_disjoint = floor_profile_disjoint_auroc(
+            fps_prof, y_kept, groups_kept, n_splits=5, seed=42
+        )
+        ceiling_auroc_profile_disjoint = ceiling_data["ceiling_result"]["leakage"][
+            "profile_auroc_disjoint"
+        ]
+        ceiling_auroc_profile_leaky = ceiling_data["ceiling_result"]["leakage"][
+            "profile_auroc_leaky"
+        ]
+        delta = ceiling_auroc_profile_disjoint - floor_auroc_profile_disjoint
+
+        report_lines.append(
+            "### Profile-level drug-disjoint head-to-head (supporting sensitivity view, D-06)\n\n"
+        )
+        report_lines.append(
+            "This **profile-level drug-disjoint** comparison is the **supporting, "
+            "better-powered sensitivity view** (D-06). The PRIMARY gate operates on "
+            "the drug-level drug-disjoint comparison above; Halt Gate 2's firing is "
+            "unchanged by this row. Both numbers sit on the SAME aligned profile rows "
+            f"({n_kept} profiles from {n_kept_drugs} drugs) and the SAME "
+            "StratifiedGroupKFold drug folds (seed=42) as the ceiling's leakage "
+            "decomposition, so it is a true apples-to-apples head-to-head.\n\n"
+        )
+        report_lines.append(
+            "| Profile-level drug-disjoint AUROC | Value |\n"
+            "|--------|-------|\n"
+            f"| Structure floor (ECFP4, profile-disjoint) | {floor_auroc_profile_disjoint:.4f} |\n"
+            f"| Measured ceiling (LINCS DE, profile-disjoint) | {ceiling_auroc_profile_disjoint:.4f} |\n"
+            f"| Ceiling minus floor (profile-disjoint) | {delta:+.4f} |\n\n"
+            f"(For reference, the leaky profile-level ceiling is "
+            f"{ceiling_auroc_profile_leaky:.4f}; see the EDA-02 leakage decomposition.)\n\n"
+        )
+    else:
+        report_lines.append(
+            "### Profile-level drug-disjoint head-to-head (supporting sensitivity view, D-06)\n\n"
+        )
+        report_lines.append(
+            f"**SKIPPED** -- too few profiles ({n_kept}) or drugs ({n_kept_drugs}) in "
+            "the intersection of ceiling-aligned profiles and floor ECFP4-covered "
+            "drugs to compute a profile-level drug-disjoint floor.\n\n"
+        )
+
+    # ------------------------------------------------------------------
+    # Leakage-discipline guidance (D-07)
+    # ------------------------------------------------------------------
+    report_lines.append("### Leakage-discipline guidance (D-07)\n\n")
+    report_lines.append(
+        "Drug-disjoint (group-aware) cross-validation is the **recommended** "
+        "evaluation for every ceiling/floor/AUROC comparison across this milestone, "
+        "including Phase 2+ predicted-signature evals. Enforcement is per-phase "
+        "planner guidance, not a project hard rule. The +0.31 AUROC benchmark "
+        "drug-leakage finding (profile-level 0.912 leaky vs 0.605 drug-disjoint) stays "
+        "documented in this report (see the EDA-02 Leakage decomposition section).\n\n"
     )
 
     return bootstrap_result
