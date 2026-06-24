@@ -9,7 +9,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 ## Phases
 
 - [x] **Phase 0: Dataset acquisition & MANIFEST** - Every input dataset on disk, versioned, with gene-space coverage + ortholog map; no model code. [HALT GATE 1 — NOT FIRED]
-- [ ] **Phase 1: EDA (the bracket)** - Bound the achievable result before any model runs; floor, ceiling, region + cross-species diagnostics. [HALT GATE 2]
+- [x] **Phase 1: EDA (the bracket)** - Bound the achievable result before any model runs; floor, ceiling, region + cross-species diagnostics. [HALT GATE 2 — fired as intended → reframed/documented; halt LIFTED per D-10] [COMPLETE 2026-06-23]
 - [ ] **Phase 2: MultiDCP wiring & toxicity head** - End-to-end forward path from drug + region basal to organ-tox logit using the frozen baseline; APAP validity anchor. [HALT GATE 3]
 - [ ] **Phase 3: Splits & no-leakage** - Compound-aware within-species + cross-species transfer splits with leakage audits. [HALT GATE 4]
 - [ ] **Phase 4: Per-organ train/test (human first)** - Within-species headline condition matrix per organ, ≥3 seeds, key contrasts with bootstrap CIs. [HALT GATE 5]
