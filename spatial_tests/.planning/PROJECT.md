@@ -89,7 +89,7 @@ P5 and P7 have no halt gate (poor transfer is itself a reportable result).
 ## Key Decisions
 
 ### Decided (design)
-- **DEC-frozen-baseline** — MultiDCP / MultiDCP-CheMoE (Pham et al. 2022) is a frozen baseline, not retrained. The downstream toxicity head is the only trained component.
+- **DEC-frozen-baseline** — MultiDCP / MultiDCP-CheMoE (Pham et al. 2022) is a frozen baseline, not retrained. The downstream toxicity head is the only trained component. **AMENDED 2026-06-24 (professor sign-off, Phase 2 Halt Gate 3 reframe):** scoped exception authorized — the row-17 CheMoE checkpoint's cell-context encoder is non-functional (a collapsed transformer composed-function: `repeat(1,1,32)` flattens per-channel signal + near-zero final LayerNorm → predictions ignore the basal entirely; see `phases/02-multidcp-wiring-tox-head/02-REFRAME.md` + `results/tables/P2_wiring_vs_weights.md`). Since this makes the milestone's core mechanism (cell/tissue-conditioned predicted GEX, conditions B/C/S-B/S-C) untestable, a **minimal upstream ENCODER architecture fix + retrain** in the parent `MultiDCP_CheMoE_pdg` project is authorized (e.g. `linear_encoder_flag=True` / replace `repeat(1,1,32)` with a learned `Linear(1→32)`). This is the ONLY reversal — it does not open general upstream retraining; the retrained model is re-frozen for the downstream once it passes a basal-sensitivity gate.
 - **DEC-spatial-is-comparison-arm (Q1)** — Spatial is an additive comparison arm (S-B / S-C / S-F) benchmarked against cell-line conditions B/C; it does not replace them.
 - **DEC-platform-visium-only (Q3/C1)** — Whole-transcriptome Visium as basal input (near-100% coverage of the 10,716-gene MultiDCP space; 934/978 L1000 landmarks present). Targeted panels (MERFISH/Xenium/CosMx) are annotation-only aids; a targeted panel may be promoted only via Tangram reference-based imputation when a paired whole-transcriptome snRNA-seq reference exists.
 - **DEC-region-granularity-published (Q4)** — Published region annotations are the default; fall back to unsupervised Leiden domains only when no usable published annotation exists.
@@ -108,7 +108,7 @@ P5 and P7 have no halt gate (poor transfer is itself a reportable result).
 
 ## Out of Scope
 
-- Retraining / fine-tuning MultiDCP / CheMoE (frozen baseline only).
+- Retraining / fine-tuning MultiDCP / CheMoE (frozen baseline only). **EXCEPTION 2026-06-24:** a single scoped upstream ENCODER architecture fix + retrain is now authorized (see DEC-frozen-baseline amendment) because the frozen checkpoint's cell-context encoder is non-functional; re-frozen after a basal-sensitivity gate. No other upstream retraining.
 - Joint multi-organ model (per-organ only).
 - Heart deferral — RESCINDED 2026-06-21. Heart is now the 4th in-scope organ (public Kuppe Visium control + FDA DICTrank acquired); still sequenced last, after liver/kidney/brain.
 - Non-DE metrics / raw-expression features.
