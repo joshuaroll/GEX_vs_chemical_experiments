@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **2×2-completion gap-closure PLANNED (01-08). Ready to execute. On execution the halt LIFTS and Phase 2 unblocks regardless of sign (D-08/D-09/D-10). Phase 2 BLOCKED until 01-08 executes.**
-stopped_at: Planned the 2×2-completion gap-closure (01-08-PLAN.md, wave 4, depends_on [01-06, 01-07]; plan-checker PASSED). Adds floor-leaky cell (`floor_profile_leaky_auroc`, random StratifiedKFold no-groups, seed=42), writes the completed floor×ceiling × leaky×disjoint 2×2 with the "explains the paper" diagnostic, adds a 95% paired-bootstrap CI on the profile-disjoint gap (10k resamples, seed=42), and appends the un-halt RESOLUTION note to HALT_REASON.md (D-10). PRIMARY drug-level gate / gate_fires / sys.exit(1) untouched.
-last_updated: "2026-06-23T23:30:00.000Z"
+status: **PHASE 1 COMPLETE (2026-06-23, 8/8 plans, verification 9/9). Halt Gate 2 fired as intended → reframed + documented; halt LIFTED per D-10. Phase 2 UNBLOCKED — next milestone step.**
+stopped_at: Executed + verified the 2×2-completion gap-closure (01-08). Completed the floor×ceiling × leaky×disjoint 2×2 (floor-leaky 0.999 ≥ ceiling-leaky 0.912 → "explains the paper"; floor-disjoint 0.546 vs ceiling-disjoint 0.605, gap +0.059 CI [0.026, 0.092]); appended the dated RESOLUTION un-halt note to HALT_REASON.md (D-10). Verifier PASSED 9/9; full suite 168 passed. Phase 1 marked complete; Phase 2 unblocked.
+last_updated: "2026-06-23T23:55:00.000Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
@@ -28,17 +28,17 @@ progress:
 
 ## Current Position
 
-Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; 01-07 COMPLETE; **01-08 (2×2-completion gap-closure) PLANNED + checker-PASSED, ready to execute**
-Plan: 7 of 8 executed; 01-08 planned (un-halt plan)
+Phase: 01 (eda-the-bracket) — **COMPLETE 2026-06-23** (8/8 plans; verification 9/9). Halt Gate 2 fired as intended → reframed + documented; **halt LIFTED per D-10, Phase 2 UNBLOCKED**.
+Plan: 8 of 8 executed (01-08 2×2-completion gap-closure DONE — the un-halt plan)
 
-- **Phase:** 1
-- **Plan:** 01-06 COMPLETE; **01-07 EXECUTED + COMPLETE** (Wave 3, gap-closure — added the floor's profile-level drug-disjoint AUROC so the profile-level sensitivity view is now a true floor-vs-ceiling head-to-head, per D-06; wrote the D-07 guidance note; preserved the halt). Head-to-head: floor(profile-disjoint)=0.5461 vs ceiling(profile-disjoint)=0.6052, +0.0590 on 2648 profiles / 227 drugs (same drug folds, seed=42).
-- **Status:** **HALT REVIEW DONE (D-08/D-09/D-10).** Un-halt is now a documentation step: plan + execute one more gap-closure (the 2×2 completion — add floor-leaky) and the halt LIFTS, Phase 2 unblocks regardless of sign. Phase 2 BLOCKED only until that 2×2 plan executes.
-- **Progress:** `[####################] P1: 7/7 executed; gate review done; 1 more gap-closure (2×2 completion) un-halts → Phase 2`
+- **Phase:** 1 — DONE. Next: Phase 2 (MultiDCP wiring & toxicity head; carries HALT GATE 3).
+- **Plan:** 01-08 EXECUTED + COMPLETE (Wave 4, gap-closure). Completed the floor×ceiling × leaky×disjoint **2×2** on 2648 profiles / 227 drugs (seed=42): **floor-leaky 0.9989, ceiling-leaky 0.9120, floor-disjoint 0.5461, ceiling-disjoint 0.6052.** Added a 95% paired-bootstrap CI on the profile-disjoint gap: **+0.0590, CI [0.0259, 0.0921]**, 10000/10000 resamples. Appended the dated RESOLUTION note to HALT_REASON.md (D-10). 5 atomic commits (RED→GREEN→wire→regenerate→SUMMARY).
+- **Status:** **PHASE 1 COMPLETE — halt LIFTED (D-08/D-10).** The bracket is fully documented (2×2 + CIs); per D-08/D-10 the halt lifts on honest documentation regardless of the gap sign. Phase 2 (HALT GATE 3) is now UNBLOCKED. **This STATE.md is the durable un-halt record** (the RESOLUTION note in HALT_REASON.md is volatile — `run_p1_eda.py all` rewrites that file via `_write_halt_reason` on every run).
+- **Progress:** `[####################] P1: 8/8 COMPLETE; halt LIFTED → Phase 2 unblocked`
 
-**Halt Gate 2 result (leakage-corrected):** structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES. Robust headline finding: the Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (profile-level 0.912 leaky vs 0.605 drug-disjoint); honest measured ≈ structure at the fair level; the drug-aggregated gate is underpowered (38 negative drugs). See `results/tables/P1_eda.md` + `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
+**Halt Gate 2 result (as designed — fired, then documented/reframed, NOT a blocker anymore):** PRIMARY drug-level gate: structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES (still fires by design; driver still exits 1). **Completed-2×2 headline:** floor-leaky (0.999) ≥ ceiling-leaky (0.912) → the Wang/Li ~0.798 benchmark is largely **drug-identity memorization that chemical structure reproduces** ("explains the paper"); at the honest drug-disjoint level the measured ceiling shows a small real lift over structure (+0.059, CI [0.026, 0.092]) but does not clear the drug-level gate. See `results/tables/P1_eda.md` + `01-VERIFICATION.md`.
 
-**Next action:** Gate review COMPLETE (2026-06-23, D-08/D-09/D-10 — see `01-CONTEXT.md`). **Plan the 2×2-completion gap-closure:** `/gsd-plan-phase 1`. Scope (D-09): add a `floor_profile_leaky_auroc` (LR on ECFP4, random `StratifiedKFold` profile split, seed=42, mirroring the ceiling's `_leakage_decomposition`) to fill the missing **floor-leaky** cell, completing the floor×ceiling × leaky×disjoint 2×2 in `P1_eda.md`; add a paired-bootstrap CI on the profile-level drug-disjoint gap (floor 0.546 vs ceiling 0.605, +0.059) for honest documentation. NO negative-set expansion (declined). Per D-10, once the 2×2 is written the halt LIFTS and Phase 2 (HALT GATE 3) unblocks **regardless of sign** — the predicted region-resolved signature is the real untested bet; a measured null just raises the bar. Leaky column = diagnostic (if floor-leaky ≈ ceiling-leaky 0.912, the Wang/Li headline is structure-memorization, not biology); drug-disjoint column = fair verdict (D-06).
+**Next action:** **Phase 1 COMPLETE — start Phase 2.** `/gsd-discuss-phase 2` (recommended) → `/gsd-plan-phase 2` → `/gsd-execute-phase 2`. Phase 2 = MultiDCP wiring & toxicity head (frozen baseline forward path to an organ-tox logit; APAP anchor; carries HALT GATE 3). The reframe raises the bar: measured DE gives no clear honest lift over structure, so the live bet is the **predicted, region-resolved** signature, which neither the floor nor the measured ceiling tests. Honor D-07 (drug-disjoint/group-aware CV recommended for all Phase 2+ AUROC comparisons).
 
 ## Performance Metrics
 
@@ -154,7 +154,7 @@ Plan: 7 of 8 executed; 01-08 planned (un-halt plan)
 
 ### Blockers
 
-- **Phase 2 BLOCKED — Halt Gate 2 fired (D-02), un-halt path locked (D-08/D-10).** Do not start Phase 2 model wiring until the **2×2-completion gap-closure** (add floor-leaky; D-09) is planned and executed. Per D-10 the halt lifts on writing the 2×2 — regardless of sign — and Phase 2 then unblocks. See `HALT_REASON.md` + `01-CONTEXT.md` D-08/D-09/D-10.
+- **NONE for Phase 2.** ~~Phase 2 BLOCKED — Halt Gate 2 fired~~ **RESOLVED 2026-06-23:** the 2×2-completion gap-closure (01-08) executed + verified; per D-08/D-10 the halt LIFTED on completing the honest bracket documentation regardless of sign. Phase 2 (MultiDCP wiring; carries HALT GATE 3) is UNBLOCKED. (Halt Gate 2's PRIMARY drug-level gate still fires inside `run_p1_eda.py` by design — that is a preserved historical record, not an active blocker.)
 
 ## Session Continuity
 
