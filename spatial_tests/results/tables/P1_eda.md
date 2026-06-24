@@ -1,6 +1,6 @@
 # Phase 1 EDA Report: The Bracket (liver/human)
 
-**Generated:** 2026-06-23T06:31:55Z
+**Generated:** 2026-06-24T00:41:04Z
 **Sub-command:** all
 
 ## EDA-01: Structure-Only Floor (DILIrank, liver/human)
@@ -87,6 +87,22 @@ The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (Stratified
 2. **Measured ~= structure at the fair level.** The honest profile-level ceiling (0.605) is comparable to the structure floor (0.611); the more negative drug-aggregated gap is noise from collapsing many profiles onto few drugs.
 3. **Underpowered.** Only 38 negative drugs; the gate firing is marginal (see Power above). Treat this as 'measured biology adds no lift over structure, benchmark is leakage-inflated', not as a clean 'structure beats biology' result.
 
+### Profile-level drug-disjoint head-to-head (supporting sensitivity view, D-06)
+
+This **profile-level drug-disjoint** comparison is the **supporting, better-powered sensitivity view** (D-06). The PRIMARY gate operates on the drug-level drug-disjoint comparison above; Halt Gate 2's firing is unchanged by this row. Both numbers sit on the SAME aligned profile rows (2648 profiles from 227 drugs) and the SAME StratifiedGroupKFold drug folds (seed=42) as the ceiling's leakage decomposition, so it is a true apples-to-apples head-to-head.
+
+| Profile-level drug-disjoint AUROC | Value |
+|--------|-------|
+| Structure floor (ECFP4, profile-disjoint) | 0.5461 |
+| Measured ceiling (LINCS DE, profile-disjoint) | 0.6052 |
+| Ceiling minus floor (profile-disjoint) | +0.0590 |
+
+(For reference, the leaky profile-level ceiling is 0.9120; see the EDA-02 leakage decomposition.)
+
+### Leakage-discipline guidance (D-07)
+
+Drug-disjoint (group-aware) cross-validation is the **recommended** evaluation for every ceiling/floor/AUROC comparison across this milestone, including Phase 2+ predicted-signature evals. Enforcement is per-phase planner guidance, not a project hard rule. The +0.31 AUROC benchmark drug-leakage finding (profile-level 0.912 leaky vs 0.605 drug-disjoint) stays documented in this report (see the EDA-02 Leakage decomposition section).
+
 ## EDA-03: Region Distinguishability (liver/human, yu2022 L5)
 
 **Moran's I SVGs (pval_norm < 0.05):** 3909 (36.6% of 10693 model-space genes tested; Moran's I run on MultiDCP 10,716-gene subset for speed).
@@ -140,4 +156,4 @@ The ceiling AUROC above is a **leakage-free, drug-grouped** estimate (Stratified
 
 
 ---
-*Run elapsed: 222.7s*
+*Run elapsed: 248.4s*
