@@ -1,50 +1,61 @@
 """Per-region predicted DE caching via a frozen MultiDCP/CheMoE model.
 
-Pure library — no hardcoded /raid paths, no real-data filenames, no model
-checkpoint loading (that is deferred behind NotImplementedError with a clear
-TODO below). Only the following are fully implemented here and are directly
-testable with in-memory fixtures:
+The PURE parts (DE math, cache assembly, manifest, cache keys) carry NO torch
+or /raid dependency and are directly testable with in-memory fixtures. The
+IMPURE parts (``load_model``, ``_featurize_drug``, ``_call_model``) load the
+frozen MultiDCP-CheMoE backbone and run real inference; torch + the cross-
+project ``sys.path`` injection live ONLY inside those methods so the pure
+functions stay import-clean.
 
-  1. DE computation: ``predicted_DE_region = predicted_treated - region_basal``
-     (element-wise float subtraction, shape [n_genes]).
+Fully implemented, fixture-testable (pure):
+
+  1. DE computation (rule B, D-02): ``predicted_DE_region =
+     predicted_treated(drug, region_basal) - predicted_control(region_basal)``
+     (element-wise float32 subtraction, shape [n_genes]).
   2. Cache-key construction: a deterministic, gene-order-stable, region-order-
      stable, pert_id-order-stable string key for each (pert_id, region) pair.
-  3. Manifest construction: a frozen dataclass capturing the region order, gene
+  3. Manifest construction: a frozen NamedTuple capturing the region order, gene
      order, and pert_id order used for a caching run, so results arrays can
      always be reconstructed from disk unambiguously.
   4. Result containers: ``RegionDE`` (single (pert_id, region) pair) and
-     ``RegionSignatureCache`` (aligned arrays over all pert_ids × all regions).
+     ``RegionSignatureCache`` (the 3-vector cache, D-03: de_array,
+     treated_array, control_array, aligned over all pert_ids × all regions).
 
-DE convention used in this module
-----------------------------------
-``predicted_DE_region = predicted_treated(drug, region_basal) - region_basal``
+DE convention used in this module (rule B, D-02)
+------------------------------------------------
+``predicted_DE_region = predicted_treated(drug) - predicted_control(region_basal)``
 
-This is a DIVERGENCE from the main v0.4 DE rule (``treated - diseased``).
-The spatial arm uses a HEALTHY-TISSUE basal anchor, not a diseased cell-line
-anchor, because the spatial basal profiles are from healthy Visium datasets
-(Yu et al. 2022 liver, Maynard et al. 2021 DLPFC, etc.). This divergence is
-an open item requiring explicit professor sign-off — see
-``09_spatial_decisions.md`` open item #3.
+This is rule B (bias-corrected): the second operand is the model's OWN predicted
+control output for the same region context, NOT the raw observed basal (that was
+the superseded rule A). Rationale: both terms stay in the model's output
+manifold, cancelling basal-reconstruction error, and predicted DE becomes the
+same kind of quantity (``treated - control``) as the measured DE the APAP gate
+tests against. The control is an inert/empty-drug control pass (D-02 amendment,
+2026-06-24): the training vocab has no vehicle/DMSO, so ``predicted_control`` is
+a forward pass with a designated inert reference SMILES in the same region basal
+context (``INERT_CONTROL_SMILES``). That reference was never in training, so its
+output is an extrapolation; the control vector is cached (D-03) so the choice is
+auditable and re-derivable. This still diverges from the main v0.4 DE rule
+(``treated - diseased``) because the spatial arm uses a HEALTHY-TISSUE basal.
 
-Model-inference stub
----------------------
-The actual call to a frozen MultiDCP-PDG or CheMoE model is not implemented;
-it raises ``NotImplementedError`` with a TODO that points to the unresolved
-checkpoint paths in MANIFEST.md and the decisions in 09_spatial_decisions.md.
-Callers wishing to use the cacher for real inference must:
-
-  1. Confirm checkpoint paths in MANIFEST.md (Phase 3 rows are currently
-     populated with placeholder "Phase 3" strings, not real file paths).
-  2. Read 09_spatial_decisions.md open item #3 (DE-rule divergence approval)
-     and open item #1 (spatial Halt Gate go/no-go decision).
-  3. Subclass ``RegionSignatureCacher`` and override ``_call_model``.
+Model-inference path
+--------------------
+``load_model`` strict-loads ``MultiDCP_CheMoE_AE`` from the D-04 row-17
+checkpoint ``/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt``
+(0 missing / 0 unexpected keys); ``_call_model`` runs one real forward and
+returns absolute predicted treated expression over 10,716 genes. The row-18
+``chemoe_kpgt_…`` checkpoint is collapsed/incompatible and is NOT wired (D-04
+amendment / S-B descope).
 
 Hard rules honored
 -------------------
-- Pure library: NO hardcoded /raid paths or real-data filenames.
-- No mocking or synthetic model outputs; the real inference path raises
-  NotImplementedError to prevent accidental fabrication.
-- N_LANDMARK = 978 (gene space constant, matches spatial_basal.config).
+- Real data only: real strict-load + real inference; no mocked model outputs.
+- DE rule (rule B): differential expression only; raw expression as the DE
+  operand is forbidden.
+- N_PDG = 10716 (D-01) is the model I/O + cache space; N_LANDMARK = 978 is kept
+  for the 978-landmark callers (no regression).
+- Pure functions stay torch-free; torch + sys.path injection are confined to the
+  impure model methods.
 - Gene order, region order, and pert_id order are always explicit and
   deterministic (caller-supplied, not auto-detected).
 """
@@ -65,9 +76,21 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 N_LANDMARK: Final[int] = 978
-"""Number of LINCS L1000 landmark genes. The frozen MultiDCP/CheMoE models
-predict over this 978-gene space. Per-region basal vectors are also subset to
-this space before being passed as cell context."""
+"""Number of LINCS L1000 landmark genes. Kept for 978-landmark callers; the
+spatial-arm cache uses N_PDG (10716), not this space (D-01)."""
+
+N_PDG: Final[int] = 10716
+"""Number of genes in the MultiDCP-CheMoE PDG space (D-01). This is the frozen
+backbone's native I/O dimension and the spatial cache column space. The
+978->10,716 imputation is the OOD factor the project instruments, not avoids."""
+
+# Inert/empty-drug control reference for rule-B DE (D-02 amendment, 2026-06-24).
+# The PDGrapher training vocab has no vehicle/DMSO, so predicted_control is a
+# forward pass with this fixed inert reference SMILES in the same region basal
+# context. Methane ("C") is the minimal valid molecular graph the NeuralFinger-
+# print accepts; its output is an extrapolation (never in training) and is
+# cached (D-03) so the control choice stays auditable and re-derivable.
+INERT_CONTROL_SMILES: Final[str] = "C"
 
 # ---------------------------------------------------------------------------
 # Result containers
@@ -77,8 +100,10 @@ this space before being passed as cell context."""
 class RegionDE(NamedTuple):
     """Predicted differential expression for one (pert_id, region) pair.
 
-    DE convention: ``de_vector = predicted_treated - region_basal``.
-    Both input and output are in the 978-landmark-gene space.
+    DE convention (rule B, D-02):
+    ``de_vector = predicted_treated(drug) - predicted_control(region_basal)``.
+    Both input and output are in the model's gene space (N_PDG = 10716 for the
+    spatial arm; the 978-landmark space is also supported for legacy callers).
 
     Attributes
     ----------
@@ -131,9 +156,11 @@ class RegionSignatureManifest(NamedTuple):
         ``"multidcp_pdg"``, ``"multidcp_chemoe"``. Used as part of the
         cache-key namespace so PDG and CheMoE caches don't collide.
     de_convention : str
-        Frozen description of the DE formula used. Must be
-        ``"predicted_treated - region_basal"`` for all spatial-arm outputs.
-        (Distinct from main v0.4 convention ``"treated - diseased"``.)
+        Frozen description of the DE formula used (rule B, D-02). Must be
+        ``"predicted_treated(drug) - predicted_control(region_basal)"`` for all
+        spatial-arm outputs. (Distinct from the superseded rule A
+        ``"predicted_treated - region_basal"`` and from the main v0.4 convention
+        ``"treated - diseased"``.)
     n_pert_ids : int
         ``len(pert_ids)``; stored redundantly for fast validation.
     n_regions : int
@@ -153,19 +180,34 @@ class RegionSignatureManifest(NamedTuple):
 
 
 class RegionSignatureCache(NamedTuple):
-    """Aligned predicted DE arrays for all pert_ids × all regions.
+    """Aligned 3-vector predicted-signature arrays for all pert_ids × regions.
+
+    D-03: persist the final DE plus the intermediate predicted_treated and
+    predicted_control vectors (not DE-only), so reconstruction error is
+    auditable, rule A<->B is recomputable without re-running the frozen model,
+    and the APAP comparison works in either DE or absolute form.
 
     Attributes
     ----------
     de_array : np.ndarray
         Shape ``(n_pert_ids, n_regions, n_genes)`` float32.
-        ``de_array[i, j, :]`` is the predicted DE vector for
+        ``de_array[i, j, :]`` is the rule-B predicted DE vector
+        (``treated_array[i, j] - control_array[i, j]``) for
         ``manifest.pert_ids[i]`` in region ``manifest.regions[j]``.
+    treated_array : np.ndarray
+        Shape ``(n_pert_ids, n_regions, n_genes)`` float32. The model's absolute
+        predicted treated expression for each (drug, region).
+    control_array : np.ndarray
+        Shape ``(n_pert_ids, n_regions, n_genes)`` float32. The model's absolute
+        predicted control expression (inert-drug pass, D-02) for each
+        (drug, region) — same region basal context, control SMILES.
     manifest : RegionSignatureManifest
         Alignment metadata; axes only interpretable via this manifest.
     """
 
     de_array: np.ndarray
+    treated_array: np.ndarray
+    control_array: np.ndarray
     manifest: RegionSignatureManifest
 
 
@@ -282,7 +324,7 @@ def build_manifest(
         regions=tuple(regions),
         gene_ids=tuple(gene_ids),
         model_variant=model_variant,
-        de_convention="predicted_treated - region_basal",
+        de_convention="predicted_treated(drug) - predicted_control(region_basal)",
         n_pert_ids=len(pert_ids),
         n_regions=len(regions),
         n_genes=len(gene_ids),
@@ -296,40 +338,41 @@ def build_manifest(
 
 def compute_de(
     predicted_treated: np.ndarray,
-    region_basal: np.ndarray,
+    predicted_control: np.ndarray,
 ) -> np.ndarray:
-    """Compute per-region predicted DE: ``predicted_treated - region_basal``.
+    """Compute per-region predicted DE (rule B, D-02): ``treated - control``.
 
     Both arrays must be 1-D float arrays of the same length (n_genes). The
     result is returned as float32.
 
-    This function is the canonical DE computation for the spatial arm and
-    is designed to be called by ``RegionSignatureCacher._compute_de_from_batch``
-    or invoked directly by tests that inject synthetic ``predicted_treated``
-    arrays (bypassing the model stub).
+    This is the canonical DE computation for the spatial arm. It subtracts the
+    model's OWN predicted control output (rule B, bias-corrected, D-02), NOT the
+    raw observed basal (the superseded rule A). It is invoked by
+    ``assemble_cache`` and directly by tests that inject synthetic
+    ``predicted_treated`` / ``predicted_control`` arrays.
 
-    DE convention: ``predicted_DE_region = predicted_treated - region_basal``.
-    This is the HEALTHY-TISSUE convention for the spatial arm; it differs from
-    the main v0.4 DE rule (``treated - diseased``) and requires professor
-    sign-off (see ``09_spatial_decisions.md`` open item #3).
+    DE convention (rule B):
+    ``predicted_DE_region = predicted_treated(drug) - predicted_control(region_basal)``.
+    The control is an inert/empty-drug control pass in the same region context
+    (``INERT_CONTROL_SMILES``); both operands live in the model's output
+    manifold. This still differs from the main v0.4 DE rule
+    (``treated - diseased``) because the spatial arm uses a HEALTHY-TISSUE basal.
 
     Parameters
     ----------
     predicted_treated : np.ndarray
-        Shape ``(n_genes,)`` float. Predicted gene expression of cells in
-        ``region`` after drug perturbation. Produced by a frozen
-        MultiDCP/CheMoE model with ``region_basal`` as the cell context.
-    region_basal : np.ndarray
-        Shape ``(n_genes,)`` float. Pseudobulked, region-averaged basal
-        expression from the spatial Visium dataset (e.g., periportal
-        pseudobulk from Yu et al. 2022 liver). Subset to the model's gene
-        space (N_LANDMARK = 978) before passing here.
+        Shape ``(n_genes,)`` float. The model's absolute predicted treated
+        expression for the drug in the region's cell context.
+    predicted_control : np.ndarray
+        Shape ``(n_genes,)`` float. The model's absolute predicted control
+        expression — a forward pass with the inert reference drug in the SAME
+        region basal context (rule B, D-02). NOT the raw observed basal.
 
     Returns
     -------
     np.ndarray
         Shape ``(n_genes,)`` float32. Element-wise
-        ``predicted_treated - region_basal``.
+        ``predicted_treated - predicted_control``.
 
     Raises
     ------
@@ -337,23 +380,23 @@ def compute_de(
         If either array is not 1-D, or if they have different lengths.
     """
     pt = np.asarray(predicted_treated, dtype=np.float32)
-    rb = np.asarray(region_basal, dtype=np.float32)
+    pc = np.asarray(predicted_control, dtype=np.float32)
 
     if pt.ndim != 1:
         raise ValueError(
             f"compute_de: predicted_treated must be 1-D, got shape {pt.shape}."
         )
-    if rb.ndim != 1:
+    if pc.ndim != 1:
         raise ValueError(
-            f"compute_de: region_basal must be 1-D, got shape {rb.shape}."
+            f"compute_de: predicted_control must be 1-D, got shape {pc.shape}."
         )
-    if pt.shape != rb.shape:
+    if pt.shape != pc.shape:
         raise ValueError(
             f"compute_de: shape mismatch — predicted_treated {pt.shape} vs "
-            f"region_basal {rb.shape}. Both must have the same n_genes."
+            f"predicted_control {pc.shape}. Both must have the same n_genes."
         )
 
-    return pt - rb
+    return pt - pc
 
 
 # ---------------------------------------------------------------------------
@@ -363,30 +406,33 @@ def compute_de(
 
 def assemble_cache(
     predicted_treated_map: dict[tuple[str, str], np.ndarray],
-    region_basal_map: dict[str, np.ndarray],
+    predicted_control_map: dict[tuple[str, str], np.ndarray],
     manifest: RegionSignatureManifest,
 ) -> RegionSignatureCache:
-    """Build a ``RegionSignatureCache`` from caller-supplied predicted arrays.
+    """Build the 3-vector ``RegionSignatureCache`` from predicted arrays (rule B).
 
-    This function is PURE: it only does DE subtraction and array stacking. It
-    does NOT call any model. It is the entry point for:
+    PURE: only rule-B DE subtraction (``compute_de``) and array stacking; it does
+    NOT call any model. Entry point for:
 
-      a. Tests, which inject synthetic ``predicted_treated_map`` arrays.
-      b. A future ``RegionSignatureCacher.run()`` implementation, which will
-         populate ``predicted_treated_map`` by calling the model stub (once
-         the checkpoint paths are resolved).
+      a. Tests, which inject synthetic treated/control maps.
+      b. ``RegionSignatureCacher.run()``, which populates both maps by running the
+         real frozen forward (treated drug + inert-control pass per D-02).
 
     Parameters
     ----------
     predicted_treated_map : dict[tuple[str, str], np.ndarray]
         Keys are ``(pert_id, region)`` pairs. Values are 1-D float arrays of
-        shape ``(n_genes,)`` representing the model's predicted treated GEX
-        for that drug in that region's cell context.
-        All ``(pert_id, region)`` combinations in the manifest must be present.
-    region_basal_map : dict[str, np.ndarray]
-        Keys are region labels (must cover all ``manifest.regions``). Values
-        are 1-D float arrays of shape ``(n_genes,)`` — pseudobulked basal
-        expression for that region.
+        shape ``(n_genes,)`` — the model's absolute predicted treated GEX for
+        that drug in that region's cell context. All manifest
+        ``(pert_id, region)`` combinations must be present.
+    predicted_control_map : dict[tuple[str, str], np.ndarray]
+        Keys are ``(pert_id, region)`` pairs. Values are 1-D float arrays of
+        shape ``(n_genes,)`` — the model's absolute predicted CONTROL GEX (the
+        inert-drug pass, D-02) in the SAME region basal context. The control is
+        region-determined; it is keyed per (pert_id, region) for a uniform
+        schema and so the cache aligns position-for-position with the treated
+        and DE arrays. All manifest ``(pert_id, region)`` combinations must be
+        present.
     manifest : RegionSignatureManifest
         Alignment metadata (produced by ``build_manifest``). Defines the
         iteration order for axes 0 (pert_ids) and 1 (regions).
@@ -394,31 +440,26 @@ def assemble_cache(
     Returns
     -------
     RegionSignatureCache
-        ``.de_array`` shape is ``(n_pert_ids, n_regions, n_genes)`` float32.
-        ``.manifest`` is the supplied manifest (passed through unchanged).
+        ``de_array``, ``treated_array``, ``control_array`` each shape
+        ``(n_pert_ids, n_regions, n_genes)`` float32, with
+        ``de_array == treated_array - control_array`` (rule B). ``.manifest`` is
+        the supplied manifest (passed through unchanged).
 
     Raises
     ------
     KeyError
-        If any ``(pert_id, region)`` pair in the manifest is missing from
-        ``predicted_treated_map``, or if any region is missing from
-        ``region_basal_map``.
+        If any ``(pert_id, region)`` pair in the manifest is missing from either
+        ``predicted_treated_map`` or ``predicted_control_map``.
     ValueError
-        If any predicted array or basal array does not match the gene count
-        in ``manifest.n_genes``, or if ``compute_de`` raises a shape error.
+        If any predicted array does not match the gene count in
+        ``manifest.n_genes``, or if ``compute_de`` raises a shape error.
     """
-    # Validate region_basal_map completeness before the main loop.
-    missing_regions = set(manifest.regions) - set(region_basal_map.keys())
-    if missing_regions:
-        raise KeyError(
-            f"assemble_cache: region_basal_map is missing regions "
-            f"{sorted(missing_regions)}. All manifest regions must be present."
-        )
-
     n_p = manifest.n_pert_ids
     n_r = manifest.n_regions
     n_g = manifest.n_genes
     de_array = np.empty((n_p, n_r, n_g), dtype=np.float32)
+    treated_array = np.empty((n_p, n_r, n_g), dtype=np.float32)
+    control_array = np.empty((n_p, n_r, n_g), dtype=np.float32)
 
     for i, pert_id in enumerate(manifest.pert_ids):
         for j, region in enumerate(manifest.regions):
@@ -429,24 +470,39 @@ def assemble_cache(
                     f"for (pert_id={pert_id!r}, region={region!r}). Ensure all "
                     f"manifest pert_id × region combinations are populated."
                 )
-            pred = predicted_treated_map[key]
-            basal = region_basal_map[region]
-            de_vec = compute_de(pred, basal)
+            if key not in predicted_control_map:
+                raise KeyError(
+                    f"assemble_cache: predicted_control_map is missing entry "
+                    f"for (pert_id={pert_id!r}, region={region!r}). Ensure all "
+                    f"manifest pert_id × region combinations are populated "
+                    f"(rule-B control pass, D-02)."
+                )
+            pred = np.asarray(predicted_treated_map[key], dtype=np.float32)
+            pred_control = np.asarray(predicted_control_map[key], dtype=np.float32)
+            de_vec = compute_de(pred, pred_control)
             if de_vec.shape[0] != n_g:
                 raise ValueError(
                     f"assemble_cache: DE vector for ({pert_id!r}, {region!r}) "
                     f"has {de_vec.shape[0]} genes, but manifest.n_genes={n_g}."
                 )
+            treated_array[i, j, :] = pred
+            control_array[i, j, :] = pred_control
             de_array[i, j, :] = de_vec
 
     log.info(
-        "assemble_cache: built DE array %s (pert_ids=%d, regions=%d, genes=%d)",
+        "assemble_cache: built 3-vector cache %s (pert_ids=%d, regions=%d, "
+        "genes=%d; rule B = treated - control, D-02/D-03)",
         de_array.shape,
         n_p,
         n_r,
         n_g,
     )
-    return RegionSignatureCache(de_array=de_array, manifest=manifest)
+    return RegionSignatureCache(
+        de_array=de_array,
+        treated_array=treated_array,
+        control_array=control_array,
+        manifest=manifest,
+    )
 
 
 # ---------------------------------------------------------------------------

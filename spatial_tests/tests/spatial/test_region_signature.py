@@ -70,6 +70,26 @@ def _make_predicted_treated_map(
     }
 
 
+def _make_predicted_control_map(
+    pert_ids: list[str],
+    regions: list[str],
+    n_genes: int,
+    seed: int = 1,
+) -> dict[tuple[str, str], np.ndarray]:
+    """Build a synthetic predicted_control_map (rule B, D-02) keyed (pid, reg).
+
+    Rule B subtracts the model's OWN predicted control output, so the second
+    operand to ``assemble_cache`` is a per-(pert_id, region) predicted-control
+    map, NOT a raw region_basal map.
+    """
+    rng = np.random.default_rng(seed)
+    return {
+        (pid, reg): rng.standard_normal(n_genes).astype(np.float32)
+        for pid in pert_ids
+        for reg in regions
+    }
+
+
 # ---------------------------------------------------------------------------
 # Tests: compute_de
 # ---------------------------------------------------------------------------
@@ -120,8 +140,8 @@ class TestComputeDe:
             compute_de(np.ones((2, 3)), np.ones(3))
 
     def test_raises_on_2d_basal(self):
-        """2-D region_basal raises ValueError."""
-        with pytest.raises(ValueError, match="region_basal must be 1-D"):
+        """2-D predicted_control raises ValueError (rule B, D-02)."""
+        with pytest.raises(ValueError, match="predicted_control must be 1-D"):
             compute_de(np.ones(3), np.ones((2, 3)))
 
     def test_raises_on_shape_mismatch(self):
@@ -255,7 +275,9 @@ class TestBuildManifest:
             gene_ids=list(three_genes),
             model_variant="multidcp_pdg",
         )
-        assert m.de_convention == "predicted_treated - region_basal"
+        assert m.de_convention == (
+            "predicted_treated(drug) - predicted_control(region_basal)"
+        )
 
     def test_model_variant_preserved(self, two_pert_ids, two_regions, three_genes):
         """model_variant is stored unchanged."""
@@ -361,49 +383,60 @@ class TestBuildManifest:
 class TestAssembleCache:
     """Tests for the pure cache assembly function."""
 
-    def test_output_type(self, small_manifest, region_basal_map, two_pert_ids, two_regions):
+    def test_output_type(self, small_manifest, two_pert_ids, two_regions):
         """Return type is RegionSignatureCache."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        cache = assemble_cache(pred_map, region_basal_map, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        cache = assemble_cache(pred_map, ctrl_map, small_manifest)
         assert isinstance(cache, RegionSignatureCache)
 
-    def test_de_array_shape(self, small_manifest, region_basal_map, two_pert_ids, two_regions):
+    def test_de_array_shape(self, small_manifest, two_pert_ids, two_regions):
         """de_array shape is (n_pert_ids, n_regions, n_genes)."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        cache = assemble_cache(pred_map, region_basal_map, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        cache = assemble_cache(pred_map, ctrl_map, small_manifest)
         expected = (small_manifest.n_pert_ids, small_manifest.n_regions, small_manifest.n_genes)
         assert cache.de_array.shape == expected
 
     def test_de_array_dtype_float32(
-        self, small_manifest, region_basal_map, two_pert_ids, two_regions
+        self, small_manifest, two_pert_ids, two_regions
     ):
         """de_array dtype is float32."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        cache = assemble_cache(pred_map, region_basal_map, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        cache = assemble_cache(pred_map, ctrl_map, small_manifest)
         assert cache.de_array.dtype == np.float32
 
     def test_manifest_passthrough(
-        self, small_manifest, region_basal_map, two_pert_ids, two_regions
+        self, small_manifest, two_pert_ids, two_regions
     ):
         """Manifest stored in cache is identical to the one passed in."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        cache = assemble_cache(pred_map, region_basal_map, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        cache = assemble_cache(pred_map, ctrl_map, small_manifest)
         assert cache.manifest is small_manifest
 
     def test_de_values_are_correct(self):
-        """de_array[i, j, :] == predicted_treated[(pid, region)] - basal[region]."""
+        """de_array[i, j, :] == treated[(pid, reg)] - control[(pid, reg)] (rule B)."""
         pert_ids = ["drug_1", "drug_2"]
         regions = ["zone_A", "zone_B"]
         gene_ids = ["G1", "G2", "G3", "G4"]
-        n_genes = len(gene_ids)
 
         manifest = build_manifest(
             pert_ids=pert_ids,
@@ -419,33 +452,33 @@ class TestAssembleCache:
             ("drug_2", "zone_A"): np.array([12.0, 22.0, 32.0, 42.0], dtype=np.float32),
             ("drug_2", "zone_B"): np.array([13.0, 23.0, 33.0, 43.0], dtype=np.float32),
         }
-        basal_vals = {
-            "zone_A": np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32),
-            "zone_B": np.array([5.0, 6.0, 7.0, 8.0], dtype=np.float32),
+        # Rule B (D-02): control is the model's own predicted control output,
+        # keyed per (pert_id, region). Region-determined, so both drugs share the
+        # same control vector within a region.
+        ctrl_vals = {
+            ("drug_1", "zone_A"): np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32),
+            ("drug_2", "zone_A"): np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32),
+            ("drug_1", "zone_B"): np.array([5.0, 6.0, 7.0, 8.0], dtype=np.float32),
+            ("drug_2", "zone_B"): np.array([5.0, 6.0, 7.0, 8.0], dtype=np.float32),
         }
 
-        cache = assemble_cache(pred_vals, basal_vals, manifest)
+        cache = assemble_cache(pred_vals, ctrl_vals, manifest)
 
-        # drug_1 (index 0), zone_A (index 0)
-        expected_0_0 = pred_vals[("drug_1", "zone_A")] - basal_vals["zone_A"]
-        np.testing.assert_array_equal(cache.de_array[0, 0, :], expected_0_0)
-
-        # drug_1 (index 0), zone_B (index 1)
-        expected_0_1 = pred_vals[("drug_1", "zone_B")] - basal_vals["zone_B"]
-        np.testing.assert_array_equal(cache.de_array[0, 1, :], expected_0_1)
-
-        # drug_2 (index 1), zone_A (index 0)
-        expected_1_0 = pred_vals[("drug_2", "zone_A")] - basal_vals["zone_A"]
-        np.testing.assert_array_equal(cache.de_array[1, 0, :], expected_1_0)
-
-        # drug_2 (index 1), zone_B (index 1)
-        expected_1_1 = pred_vals[("drug_2", "zone_B")] - basal_vals["zone_B"]
-        np.testing.assert_array_equal(cache.de_array[1, 1, :], expected_1_1)
+        for (pid, reg, i, j) in [
+            ("drug_1", "zone_A", 0, 0),
+            ("drug_1", "zone_B", 0, 1),
+            ("drug_2", "zone_A", 1, 0),
+            ("drug_2", "zone_B", 1, 1),
+        ]:
+            expected = pred_vals[(pid, reg)] - ctrl_vals[(pid, reg)]
+            np.testing.assert_array_equal(cache.de_array[i, j, :], expected)
+            np.testing.assert_array_equal(cache.treated_array[i, j, :], pred_vals[(pid, reg)])
+            np.testing.assert_array_equal(cache.control_array[i, j, :], ctrl_vals[(pid, reg)])
 
     def test_axis_alignment_pert_id_order(self):
         """Axis 0 follows the manifest pert_id order, not dict insertion order."""
         # Manifest has pert_ids in order [B, A]. The de_array axis 0 must follow
-        # this order even though pred_map might be stored in different order in dict.
+        # this order even though the maps may be stored in a different dict order.
         pert_ids = ["drug_B", "drug_A"]
         regions = ["zone_1"]
         gene_ids = ["G1", "G2"]
@@ -461,43 +494,49 @@ class TestAssembleCache:
             ("drug_B", "zone_1"): np.array([100.0, 200.0], dtype=np.float32),
             ("drug_A", "zone_1"): np.array([300.0, 400.0], dtype=np.float32),
         }
-        basal_map = {
-            "zone_1": np.array([10.0, 20.0], dtype=np.float32),
+        ctrl_map = {
+            ("drug_B", "zone_1"): np.array([10.0, 20.0], dtype=np.float32),
+            ("drug_A", "zone_1"): np.array([10.0, 20.0], dtype=np.float32),
         }
-        cache = assemble_cache(pred_map, basal_map, manifest)
+        cache = assemble_cache(pred_map, ctrl_map, manifest)
 
         # Axis 0 index 0 = drug_B (the first element in pert_ids)
-        expected_drug_B = pred_map[("drug_B", "zone_1")] - basal_map["zone_1"]
+        expected_drug_B = pred_map[("drug_B", "zone_1")] - ctrl_map[("drug_B", "zone_1")]
         np.testing.assert_array_equal(cache.de_array[0, 0, :], expected_drug_B)
 
         # Axis 0 index 1 = drug_A
-        expected_drug_A = pred_map[("drug_A", "zone_1")] - basal_map["zone_1"]
+        expected_drug_A = pred_map[("drug_A", "zone_1")] - ctrl_map[("drug_A", "zone_1")]
         np.testing.assert_array_equal(cache.de_array[1, 0, :], expected_drug_A)
 
     def test_raises_on_missing_pert_id_region_pair(
-        self, small_manifest, region_basal_map, two_pert_ids, two_regions
+        self, small_manifest, two_pert_ids, two_regions
     ):
-        """KeyError if a (pert_id, region) pair is absent from pred map."""
+        """KeyError if a (pert_id, region) pair is absent from treated map."""
         pred_map = _make_predicted_treated_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        ctrl_map = _make_predicted_control_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
         # Remove one entry.
         missing_key = (two_pert_ids[0], two_regions[0])
         del pred_map[missing_key]
         with pytest.raises(KeyError):
-            assemble_cache(pred_map, region_basal_map, small_manifest)
+            assemble_cache(pred_map, ctrl_map, small_manifest)
 
-    def test_raises_on_missing_region_in_basal_map(
-        self, small_manifest, region_basal_map, two_pert_ids, two_regions
+    def test_raises_on_missing_pair_in_control_map(
+        self, small_manifest, two_pert_ids, two_regions
     ):
-        """KeyError if region_basal_map is missing a manifest region."""
+        """KeyError if predicted_control_map is missing a manifest pair (rule B)."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        incomplete_basal = {k: v for k, v in region_basal_map.items()
-                            if k != two_regions[0]}
-        with pytest.raises(KeyError, match=two_regions[0]):
-            assemble_cache(pred_map, incomplete_basal, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        del ctrl_map[(two_pert_ids[0], two_regions[0])]
+        with pytest.raises(KeyError, match="predicted_control_map"):
+            assemble_cache(pred_map, ctrl_map, small_manifest)
 
     def test_raises_on_gene_count_mismatch(self, two_pert_ids, two_regions):
         """ValueError if a predicted array has wrong gene count."""
@@ -509,22 +548,25 @@ class TestAssembleCache:
             gene_ids=gene_ids,
             model_variant="multidcp_pdg",
         )
-        # pred arrays have 5 genes, basal has 5 genes — this is fine.
+        # treated + control arrays have 5 genes each — this is fine.
         pred_map = _make_predicted_treated_map(two_pert_ids, two_regions, n_genes)
-        basal_map = {r: np.zeros(n_genes, dtype=np.float32) for r in two_regions}
+        ctrl_map = _make_predicted_control_map(two_pert_ids, two_regions, n_genes)
 
-        # Now corrupt one pred array to the wrong size.
+        # Now corrupt one treated array to the wrong size.
         pred_map[(two_pert_ids[0], two_regions[0])] = np.zeros(n_genes + 1, dtype=np.float32)
         with pytest.raises(ValueError):
-            assemble_cache(pred_map, basal_map, manifest)
+            assemble_cache(pred_map, ctrl_map, manifest)
 
-    def test_determinism(self, small_manifest, region_basal_map, two_pert_ids, two_regions):
+    def test_determinism(self, small_manifest, two_pert_ids, two_regions):
         """Same inputs → identical de_array contents."""
         pred_map = _make_predicted_treated_map(
             two_pert_ids, two_regions, small_manifest.n_genes
         )
-        cache_a = assemble_cache(pred_map, region_basal_map, small_manifest)
-        cache_b = assemble_cache(pred_map, region_basal_map, small_manifest)
+        ctrl_map = _make_predicted_control_map(
+            two_pert_ids, two_regions, small_manifest.n_genes
+        )
+        cache_a = assemble_cache(pred_map, ctrl_map, small_manifest)
+        cache_b = assemble_cache(pred_map, ctrl_map, small_manifest)
         np.testing.assert_array_equal(cache_a.de_array, cache_b.de_array)
 
     def test_many_pert_ids_many_regions(self):
@@ -541,16 +583,13 @@ class TestAssembleCache:
             model_variant="multidcp_chemoe",
         )
 
-        rng = np.random.default_rng(7)
-        pred_map = {
-            (p, r): rng.standard_normal(n_g).astype(np.float32)
-            for p in pert_ids
-            for r in regions
-        }
-        basal_map = {r: rng.standard_normal(n_g).astype(np.float32) for r in regions}
+        pred_map = _make_predicted_treated_map(pert_ids, regions, n_g, seed=7)
+        ctrl_map = _make_predicted_control_map(pert_ids, regions, n_g, seed=8)
 
-        cache = assemble_cache(pred_map, basal_map, manifest)
+        cache = assemble_cache(pred_map, ctrl_map, manifest)
         assert cache.de_array.shape == (n_p, n_r, n_g)
+        assert cache.treated_array.shape == (n_p, n_r, n_g)
+        assert cache.control_array.shape == (n_p, n_r, n_g)
         assert cache.de_array.dtype == np.float32
         assert cache.manifest.n_pert_ids == n_p
         assert cache.manifest.n_regions == n_r
