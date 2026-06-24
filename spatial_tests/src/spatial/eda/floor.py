@@ -47,6 +47,8 @@ __all__ = [
     "compute_floor",
     "floor_probabilities",
     "floor_profile_disjoint_auroc",
+    "floor_profile_disjoint_oof",
+    "floor_profile_leaky_auroc",
 ]
 
 
@@ -320,10 +322,71 @@ def floor_profile_disjoint_auroc(
     ValueError
         If fps.ndim != 2, len(fps) != len(y), or len(groups) != len(y).
     """
+    # Single source of truth for the folds: delegate to floor_profile_disjoint_oof
+    # and wrap in roc_auc_score so the scalar and the OOF vector can never drift.
+    oof = floor_profile_disjoint_oof(fps, y, groups, n_splits=n_splits, seed=seed)
+    y_int = np.asarray(y, dtype=int)
+    auroc = float(roc_auc_score(y_int, oof))
+
+    n_unique = len(set(np.asarray(groups).tolist()))
+    log.info(
+        "floor_profile_disjoint_auroc: n_profiles=%d n_drugs=%d auroc=%.4f seed=%d",
+        len(y_int),
+        n_unique,
+        auroc,
+        seed,
+    )
+
+    return auroc
+
+
+def floor_profile_disjoint_oof(
+    fps: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    n_splits: int = 5,
+    seed: int = 42,
+) -> np.ndarray:
+    """Per-profile drug-disjoint OOF probabilities for the structure floor.
+
+    Identical folds, pipeline, and degenerate-fallback as
+    ``floor_profile_disjoint_auroc`` (which now delegates here), but returns the
+    out-of-fold positive-class probability VECTOR instead of the scalar AUROC.
+    This lets the profile-level drug-disjoint gap feed a paired bootstrap on
+    aligned floor/ceiling OOF vectors over identical rows + drug folds (D-09).
+
+    Parameters
+    ----------
+    fps : np.ndarray
+        Shape (n_profiles, n_bits). Each profile row holds its drug's ECFP4
+        fingerprint. Must be 2-D.
+    y : np.ndarray
+        Shape (n_profiles,). Profile-level binary DILI labels aligned to fps.
+    groups : np.ndarray
+        Shape (n_profiles,). Drug grouping key (lowercased compound_name); a
+        drug's profiles share one group so the split keeps them together.
+    n_splits : int
+        Requested StratifiedGroupKFold folds. Capped at the number of unique
+        drugs. Default 5.
+    seed : int
+        Random seed for the StandardScaler+LR pipeline and the CV splitter.
+        Default 42 (matches the ceiling's _leakage_decomposition).
+
+    Returns
+    -------
+    np.ndarray
+        Shape (n_profiles,), float64. Out-of-fold positive-class probability,
+        aligned to input order.
+
+    Raises
+    ------
+    ValueError
+        If fps.ndim != 2, len(fps) != len(y), or len(groups) != len(y).
+    """
     _validate_inputs(fps, y)
     if len(groups) != len(y):
         raise ValueError(
-            f"floor_profile_disjoint_auroc: len(groups)={len(groups)!r} != "
+            f"floor_profile_disjoint_oof: len(groups)={len(groups)!r} != "
             f"len(y)={len(y)!r}. groups must align with y row-for-row."
         )
 
@@ -359,12 +422,73 @@ def floor_profile_disjoint_auroc(
             method="predict_proba",
         )[:, 1]
 
+    return oof.astype(np.float64)
+
+
+def floor_profile_leaky_auroc(
+    fps: np.ndarray,
+    y: np.ndarray,
+    n_splits: int = 5,
+    seed: int = 42,
+) -> float:
+    """Profile-level structure AUROC under a LEAKY random split (NO drug groups).
+
+    The missing floor-leaky cell of the floor x ceiling, leaky x disjoint 2x2
+    (D-09). Mirrors ``_leakage_decomposition``'s leaky path EXACTLY: a random
+    ``StratifiedKFold`` over profiles with NO ``groups`` argument, so a single
+    drug's profiles can straddle train and test and the model can exploit drug
+    identity. Reported at profile granularity, this is the floor partner of the
+    ceiling's ``profile_auroc_leaky``: if floor-leaky is near ceiling-leaky
+    (~0.912), the Wang/Li headline (~0.798) is largely drug-identity
+    memorization that chemical structure reproduces.
+
+    Parameters
+    ----------
+    fps : np.ndarray
+        Shape (n_profiles, n_bits). Each profile row holds its drug's ECFP4
+        fingerprint. Must be 2-D.
+    y : np.ndarray
+        Shape (n_profiles,). Profile-level binary DILI labels aligned to fps.
+    n_splits : int
+        Requested StratifiedKFold folds (floored at 2, capped at len(y)).
+        Default 5.
+    seed : int
+        Random seed for the StandardScaler+LR pipeline and the CV splitter.
+        Default 42 (matches the ceiling's _leakage_decomposition).
+
+    Returns
+    -------
+    float
+        Profile-level leaky (random-split, no-groups) AUROC.
+
+    Raises
+    ------
+    ValueError
+        If fps.ndim != 2 or len(fps) != len(y).
+    """
+    _validate_inputs(fps, y)
+
+    fps = np.asarray(fps, dtype=np.float32)
+    y = np.asarray(y, dtype=int)
+
+    # Same per-fold pipeline as the disjoint floor / ceiling (unit-consistent).
+    clf = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(max_iter=2000, class_weight="balanced", random_state=seed),
+    )
+
+    # Random profile split with NO groups -- the leaky setup that lets a drug's
+    # profiles straddle train/test (mirror _leakage_decomposition's leaky path).
+    cv = StratifiedKFold(
+        n_splits=max(2, min(n_splits, len(y))), shuffle=True, random_state=seed
+    )
+    oof = cross_val_predict(clf, fps, y, cv=cv, method="predict_proba")[:, 1]
+
     auroc = float(roc_auc_score(y, oof))
 
     log.info(
-        "floor_profile_disjoint_auroc: n_profiles=%d n_drugs=%d auroc=%.4f seed=%d",
+        "floor_profile_leaky_auroc: n_profiles=%d auroc=%.4f seed=%d leaky (no groups)",
         len(y),
-        n_unique,
         auroc,
         seed,
     )
