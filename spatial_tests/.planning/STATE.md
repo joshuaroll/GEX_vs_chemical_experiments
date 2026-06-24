@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **PHASE 2 PLANNED (2026-06-24) — 4 plans / 3 waves, plan-checker PASSED (0 blockers). Ready to execute. Phase 1 COMPLETE.**
-stopped_at: Discussed + researched + planned Phase 2 (MultiDCP wiring & tox head). Research VERIFIED the model I/O by loading checkpoints → two CONTEXT amendments: D-04 (wire CheMoE S-C row-17 only; S-B row-18 is a collapsed/incompatible KPGT ckpt → DESCOPED as provenance blocker) and D-02 (rule-B control = inert/empty-drug pass; model confirmed to emit absolute treated). 4 plans written (02-01 Wave-0 tests RED; 02-02 WIRE-01 seam+cache; 02-03 WIRE-02 tox_head+smoke-train; 02-04 WIRE-03 APAP gate), plan-checker PASSED with 3 non-blocking warnings (W3 false-pass boolean + W1 research-label fixed inline).
+status: **PHASE 2 EXECUTED + HALTED (2026-06-24). Engineering deliverables COMPLETE (verify 4/4, 177 pure tests). HALT GATE 3 FIRED — pericentral Pearson +0.0166 < 0.3 → stop-and-REFRAME (D-09). Phase 3 BLOCKED pending human gate-review of the reframe. Autonomous run stopped at --to 2 as scoped.**
+stopped_at: Executed all 4 Phase-2 plans (W0 tests RED → W1 WIRE-01 seam+cache ∥ WIRE-02 tox_head+smoke-train → W2 WIRE-03 APAP gate). Forward path is real (MultiDCP_CheMoE_AE strict-load 0/0, liver DE cached human+mouse, tox_head smoke-trains loss 0.654→0.050). Halt Gate 3 FIRED: the frozen cancer-line CheMoE encoder is near-zonal-invariant on healthy-liver basals (per-zone DE differs by float32 epsilon 5.96e-08), so predicted DE has no regional contrast while measured APAP DE carries real pericentral injury zonation → pericentral r=+0.0166. Per D-09 = stop-and-reframe (not abandon). Awaiting gate-review reframe decision before Phase 3.
 last_updated: "2026-06-24T00:30:00.000Z"
 last_activity: 2026-06-24
 progress:
@@ -23,7 +23,7 @@ progress:
 - **Project:** Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
 - **Root:** `/raid/home/joshua/projects/GEX_vs_chemical_experiments/spatial_tests/` (subdir of umbrella repo `GEX_vs_chemical_experiments`; no own `.git`).
 - **Core value:** Does a predicted, region-resolved molecular response signature predict organ-specific drug toxicity better than chemical structure alone, and does that signal translate across species (rodent → human)?
-- **Current focus:** Phase 02 — multidcp-wiring-tox-head (CONTEXT gathered 2026-06-24; ready to plan)
+- **Current focus:** Phase 02 — multidcp-wiring-tox-head **EXECUTED + HALTED (Gate 3 fired 2026-06-24)**. Next: human gate-review of the spatial reframe before Phase 3.
 - **Isolation note:** This is a standalone GSD project. NEVER read/write `/raid/home/joshua/.planning` (separate, halted "liver" v0.5 project).
 
 ## Current Position
@@ -38,7 +38,7 @@ Plan: 8 of 8 executed (01-08 2×2-completion gap-closure DONE — the un-halt pl
 
 **Halt Gate 2 result (as designed — fired, then documented/reframed, NOT a blocker anymore):** PRIMARY drug-level gate: structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES (still fires by design; driver still exits 1). **Completed-2×2 headline:** floor-leaky (0.999) ≥ ceiling-leaky (0.912) → the Wang/Li ~0.798 benchmark is largely **drug-identity memorization that chemical structure reproduces** ("explains the paper"); at the honest drug-disjoint level the measured ceiling shows a small real lift over structure (+0.059, CI [0.026, 0.092]) but does not clear the drug-level gate. See `results/tables/P1_eda.md` + `01-VERIFICATION.md`.
 
-**Next action:** **Phase 2 PLANNED — execute it.** `/gsd-execute-phase 2` (after `/clear`). 4 plans in 3 waves: W0 02-01 (Nyquist test scaffolds, RED) → W1 02-02 (WIRE-01: fill region_signature seam against MultiDCP_CheMoE_AE row-17, rule-B inert-control DE, 3-vector cache, N_PDG=10716, liver cache human+mouse) ∥ 02-03 (WIRE-02: tox_head concat-MLP + condition-A smoke-train) → W2 02-04 (WIRE-03: APAP per-zone Pearson on GSE272564, HALT GATE 3 pericentral<0.3 → stop-and-reframe). S-B descoped (row-18 ckpt collapsed/incompatible). Honor D-07 (drug-disjoint CV) in P4+. Plan artifacts: 02-CONTEXT (D-01..D-09 + amendments), 02-RESEARCH, 02-PATTERNS, 02-VALIDATION.
+**Next action:** **HUMAN GATE-REVIEW of the Halt Gate 3 reframe — Phase 3 blocked until then.** Phase 2 executed cleanly and fired Halt Gate 3 as designed: predicted region-resolved DE has no zonal contrast (frozen cancer-line CheMoE encoder near-zonal-invariant on healthy-liver basals), pericentral r=+0.0166 vs measured APAP zonation. Decide the reframe (see Blockers for options a/b/c), then resume. Autonomous run stopped at --to 2 as scoped. Artifacts to review: `HALT_REASON.md`, `results/tables/P2_apap_validation.md`, `02-VERIFICATION.md`, `02-02-SUMMARY.md` (zonal-invariance flag). Resume after the decision with `/gsd-discuss-phase 3` (likely re-scoped per the reframe) or re-open Phase 2 wiring if option (b).
 
 ## Performance Metrics
 
@@ -154,10 +154,11 @@ Plan: 8 of 8 executed (01-08 2×2-completion gap-closure DONE — the un-halt pl
 
 ### Blockers
 
-- **NONE for Phase 2.** ~~Phase 2 BLOCKED — Halt Gate 2 fired~~ **RESOLVED 2026-06-23:** the 2×2-completion gap-closure (01-08) executed + verified; per D-08/D-10 the halt LIFTED on completing the honest bracket documentation regardless of sign. Phase 2 (MultiDCP wiring; carries HALT GATE 3) is UNBLOCKED. (Halt Gate 2's PRIMARY drug-level gate still fires inside `run_p1_eda.py` by design — that is a preserved historical record, not an active blocker.)
+- **Phase 3 BLOCKED — HALT GATE 3 fired (2026-06-24).** Do not start Phase 3 (splits) until a human gate-review decides the spatial reframe. The frozen CheMoE backbone does not produce region-resolved DE for healthy-liver basals (near-zonal-invariant), so the predicted region-resolved signature — the milestone's core bet — does not survive its first direct test as currently wired. Per D-09 this is stop-and-REFRAME (negative is publishable), not abandon. See `.planning/phases/02-multidcp-wiring-tox-head/HALT_REASON.md` + `results/tables/P2_apap_validation.md` + `02-VERIFICATION.md`. Reframe options to weigh at review: (a) test whether ANY conditioning signal beats structure even without zonal resolution (proceed to P3/P4 with S-C as a degenerate/region-pooled condition, reporting the spatial null honestly); (b) swap/seek a basal-context encoder that responds to healthy-tissue basals (re-opens S-B provenance / a non-cancer-trained backbone); (c) reframe the paper around the instrumented negative (frozen cancer-line GEX models do not transfer region structure to healthy tissue) per concept 4.
+- ~~Phase 2 BLOCKED (Halt Gate 2)~~ RESOLVED 2026-06-23 (P1 un-halt, D-10).
 
 ## Session Continuity
 
 - **Last activity:** 2026-06-24
-- **Stopped at:** **Phase 2 PLANNED + checker-PASSED** (2026-06-24). Discuss→research→plan complete; two post-research CONTEXT amendments (D-04 S-B descope, D-02 inert-control). 4 plans (02-01..02-04) committed; plan-checker PASSED (0 blockers, 3 warnings, W1+W3 fixed inline).
-- **Resume with:** `/gsd-execute-phase 2` (after `/clear`). Wave-based: W0 tests (RED) → W1 WIRE-01 (02-02) ∥ WIRE-02 (02-03) → W2 WIRE-03 (02-04, HALT GATE 3). Artifacts: `02-CONTEXT.md` (D-01..D-09 + amendments), `02-RESEARCH.md`, `02-PATTERNS.md`, `02-VALIDATION.md`. Watch items for execution: 0-1 basal min-max normalization, CUDA hygiene (--gpu before import torch), N_LANDMARK 978→10716 generalization, real inference is @pytest.mark.gpu (never mocked).
+- **Stopped at:** **Phase 2 EXECUTED + HALTED (Gate 3 fired)** via `/gsd-autonomous --to 2`. All 4 plans done + verified (4/4, 177 pure tests). Halt Gate 3 fired (pericentral r=+0.0166 < 0.3) → stop-and-reframe (D-09). Autonomous stopped at the scoped `--to 2` review point; lifecycle skipped (milestone not complete). Code review deferred (advisory; premature before the reframe — run `/gsd-code-review 2` if keeping the wiring).
+- **Resume with:** human gate-review the reframe (see Blockers a/b/c), then `/gsd-discuss-phase 3` (re-scoped) or re-open Phase 2 if option (b). Review artifacts: `.planning/phases/02-multidcp-wiring-tox-head/HALT_REASON.md`, `results/tables/P2_apap_validation.md`, `02-VERIFICATION.md`, `02-02-SUMMARY.md`.

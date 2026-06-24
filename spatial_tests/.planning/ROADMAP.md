@@ -63,10 +63,11 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   4. Predicted-vs-measured per-zone Pearson on the APAP anchor (GSE280652 / GSE272564) is reported.
 **Halt gate**: HALT GATE 3 — predicted-vs-acetaminophen per-zone Pearson < 0.3 → write `HALT_REASON.md`, reframe spatial claim.
 **Plans**: 4 plans (3 waves). S-B/row-18 DESCOPED this phase (collapsed/incompatible ckpt; provenance blocker) — WIRE-01/02/03 satisfied by S-C alone (D-04 amended).
-  - [ ] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds + conftest + gpu marker (RED) (WIRE-01/02/03)
-  - [ ] 02-02-PLAN.md — Wave 1: WIRE-01 — fill region_signature seam (MultiDCP_CheMoE_AE, row-17), rule-B DE (D-02), 3-vector cache (D-03), N_PDG (D-01), liver cache human+mouse (WIRE-01)
-  - [ ] 02-03-PLAN.md — Wave 1: WIRE-02 — tox_head concat-MLP + zero-channel masking + condition-A smoke-train (wandb) (WIRE-02)
-  - [ ] 02-04-PLAN.md — Wave 2: WIRE-03 — APAP per-zone Pearson (GSE272564 primary), Halt Gate 3 (pericentral<0.3 -> stop-and-reframe, D-08/D-09) (WIRE-03)
+**Status**: EXECUTED 2026-06-24; engineering deliverables COMPLETE (verification 4/4, 177 pure tests pass). **HALT GATE 3 FIRED** — pericentral predicted-vs-measured Pearson **+0.0166 < 0.3** → **stop-and-REFRAME (D-09)**. Mechanism: the frozen cancer-line CheMoE encoder is near-zonal-invariant on healthy-liver basals (per-zone DE differs by float32 epsilon), so prediction is drug+dose-driven with no regional contrast, while measured APAP DE carries real pericentral injury zonation. **Phase 3 BLOCKED pending human gate-review of the reframe.**
+  - [x] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds + conftest + gpu marker (RED) (WIRE-01/02/03) [DONE 2026-06-24]
+  - [x] 02-02-PLAN.md — Wave 1: WIRE-01 — fill region_signature seam (MultiDCP_CheMoE_AE, row-17), rule-B DE (D-02), 3-vector cache (D-03), N_PDG (D-01), liver cache human+mouse [DONE 2026-06-24 — strict-load 0/0; cache 499 drugs×2 zones×10716 human+mouse]
+  - [x] 02-03-PLAN.md — Wave 1: WIRE-02 — tox_head concat-MLP + zero-channel masking + condition-A smoke-train (wandb) [DONE 2026-06-24 — loss 0.654→0.050, wandb offline]
+  - [x] 02-04-PLAN.md — Wave 2: WIRE-03 — APAP per-zone Pearson (GSE272564), Halt Gate 3 [DONE 2026-06-24 — pericentral r=+0.0166 → FIRES → stop-and-reframe (D-09)]
 **UI hint**: no
 
 ### Phase 3: Splits & no-leakage
