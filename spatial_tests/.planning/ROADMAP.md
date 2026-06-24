@@ -57,12 +57,16 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 **Depends on**: Phase 1.
 **Requirements**: WIRE-01, WIRE-02, WIRE-03
 **Success Criteria** (what must be TRUE):
-  1. The `region_signature.py` `NotImplementedError` seam is replaced with the real frozen-checkpoint call, and per-region predicted DE (spatial rule `predicted_treated(drug, region_basal) - region_basal`) is cached for the starting organ in both species.
+  1. The `region_signature.py` `NotImplementedError` seam is replaced with the real frozen-checkpoint call (MultiDCP-CheMoE / S-C, row-17 ckpt; D-04 amended), and per-region predicted DE (spatial rule B `predicted_treated(drug) - predicted_control(region_basal)`; D-02 amended) is cached for the starting organ (liver) in both species.
   2. `src/spatial/tox_head.py` (concat-MLP) runs a working forward pass fed by the attention combiner, with per-condition zero-tensor masking and no NaNs.
   3. Condition A smoke-trains with wandb logging confirmed, and manifests align across regions and species.
   4. Predicted-vs-measured per-zone Pearson on the APAP anchor (GSE280652 / GSE272564) is reported.
 **Halt gate**: HALT GATE 3 — predicted-vs-acetaminophen per-zone Pearson < 0.3 → write `HALT_REASON.md`, reframe spatial claim.
-**Plans**: TBD
+**Plans**: 4 plans (3 waves). S-B/row-18 DESCOPED this phase (collapsed/incompatible ckpt; provenance blocker) — WIRE-01/02/03 satisfied by S-C alone (D-04 amended).
+  - [ ] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds + conftest + gpu marker (RED) (WIRE-01/02/03)
+  - [ ] 02-02-PLAN.md — Wave 1: WIRE-01 — fill region_signature seam (MultiDCP_CheMoE_AE, row-17), rule-B DE (D-02), 3-vector cache (D-03), N_PDG (D-01), liver cache human+mouse (WIRE-01)
+  - [ ] 02-03-PLAN.md — Wave 1: WIRE-02 — tox_head concat-MLP + zero-channel masking + condition-A smoke-train (wandb) (WIRE-02)
+  - [ ] 02-04-PLAN.md — Wave 2: WIRE-03 — APAP per-zone Pearson (GSE272564 primary), Halt Gate 3 (pericentral<0.3 -> stop-and-reframe, D-08/D-09) (WIRE-03)
 **UI hint**: no
 
 ### Phase 3: Splits & no-leakage
@@ -130,7 +134,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 |-------|----------------|--------|-----------|
 | 0. Dataset acquisition & MANIFEST | 4/4 | Complete    | 2026-06-23 |
 | 1. EDA (the bracket) | 7/7 | Halted (Gate 2 fired); 01-07 gap-closure executed (head-to-head + D-07 done; halt stands) | - |
-| 2. MultiDCP wiring & toxicity head | 0/0 | Not started | - |
+| 2. MultiDCP wiring & toxicity head | 0/4 | Planned (4 plans, 3 waves; S-B descoped) | - |
 | 3. Splits & no-leakage | 0/0 | Not started | - |
 | 4. Per-organ train/test (human first) | 0/0 | Not started | - |
 | 5. Cross-species translatability | 0/0 | Not started | - |
