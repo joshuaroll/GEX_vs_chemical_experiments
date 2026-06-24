@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.spatial.eda.floor import compute_floor
+from src.spatial.eda.floor import compute_floor, floor_profile_disjoint_auroc
 
 
 # ---------------------------------------------------------------------------
@@ -52,4 +52,37 @@ def test_floor_auroc_above_chance() -> None:
     )
     assert result.rf_auroc > 0.5, (
         f"Expected random forest AUROC > 0.5, got {result.rf_auroc:.3f}"
+    )
+
+
+def test_floor_profile_disjoint_no_drug_leakage() -> None:
+    """Drug-grouped CV must stop per-drug memorization from inflating the floor.
+
+    Mirrors test_ceiling_no_drug_leakage. Each drug gets a unique constant
+    identity feature dim (repeated across its profiles) and a label. Under
+    profile-level CV the model memorizes the drug (AUROC -> ~1.0). Under
+    leakage-free drug-grouped CV the held-out drug's identity dim is never seen
+    with a label, so the profile-level AUROC stays near chance. This locks the
+    GroupKFold grouping for the new floor function (mirroring the ceiling fix).
+    """
+    n_drugs = 10
+    profiles_per_drug = 8
+    rng = np.random.default_rng(0)
+    de_rows, labels, names = [], [], []
+    for d in range(n_drugs):
+        sig = np.zeros(n_drugs, dtype=np.float32)
+        sig[d] = 5.0  # unique per-drug identity feature (memorizable only via leakage)
+        lab = 1 if d < n_drugs // 2 else 0
+        for _ in range(profiles_per_drug):
+            de_rows.append(sig + rng.standard_normal(n_drugs).astype(np.float32) * 0.01)
+            labels.append(lab)
+            names.append(f"drug{d}")
+    de = np.asarray(de_rows, dtype=np.float32)
+    y = np.asarray(labels, dtype=int)
+
+    auroc = floor_profile_disjoint_auroc(de, y, np.asarray(names))
+
+    assert auroc < 0.75, (
+        f"floor profile-disjoint AUROC {auroc:.3f} too high -- drug leakage not "
+        "prevented (CV is splitting a drug's profiles across train/test)"
     )

@@ -32,11 +32,22 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.model_selection import (
+    StratifiedGroupKFold,
+    StratifiedKFold,
+    cross_val_predict,
+)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 log = logging.getLogger(__name__)
 
-__all__ = ["FloorResult", "compute_floor", "floor_probabilities"]
+__all__ = [
+    "FloorResult",
+    "compute_floor",
+    "floor_probabilities",
+    "floor_profile_disjoint_auroc",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -263,3 +274,99 @@ def floor_probabilities(
     )
 
     return oof_proba[:, 1].astype(np.float64)
+
+
+def floor_profile_disjoint_auroc(
+    fps: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    n_splits: int = 5,
+    seed: int = 42,
+) -> float:
+    """Profile-level, drug-disjoint structure AUROC (head-to-head with the ceiling).
+
+    Mirrors ``compute_ceiling``'s leakage-free path exactly so the structure floor
+    and the measured ceiling sit on identical drug-disjoint folds at PROFILE
+    granularity. Each PROFILE row carries ITS DRUG's ECFP4 fingerprint; folds are
+    drawn with StratifiedGroupKFold grouped by the drug key, so a drug's profiles
+    never straddle train/test. The AUROC is reported at profile granularity (no
+    drug aggregation) -- this is the supporting, better-powered sensitivity view
+    (D-06), the floor partner of the ceiling's profile_auroc_disjoint.
+
+    Parameters
+    ----------
+    fps : np.ndarray
+        Shape (n_profiles, n_bits). Each profile row holds its drug's ECFP4
+        fingerprint. Must be 2-D.
+    y : np.ndarray
+        Shape (n_profiles,). Profile-level binary DILI labels aligned to fps.
+    groups : np.ndarray
+        Shape (n_profiles,). Drug grouping key (lowercased compound_name); a
+        drug's profiles share one group so the split keeps them together.
+    n_splits : int
+        Requested StratifiedGroupKFold folds. Capped at the number of unique
+        drugs. Default 5.
+    seed : int
+        Random seed for the StandardScaler+LR pipeline and the CV splitter.
+        Default 42 (matches the ceiling's _leakage_decomposition).
+
+    Returns
+    -------
+    float
+        Profile-level drug-disjoint AUROC.
+
+    Raises
+    ------
+    ValueError
+        If fps.ndim != 2, len(fps) != len(y), or len(groups) != len(y).
+    """
+    _validate_inputs(fps, y)
+    if len(groups) != len(y):
+        raise ValueError(
+            f"floor_profile_disjoint_auroc: len(groups)={len(groups)!r} != "
+            f"len(y)={len(y)!r}. groups must align with y row-for-row."
+        )
+
+    fps = np.asarray(fps, dtype=np.float32)
+    y = np.asarray(y, dtype=int)
+    groups = np.asarray(groups)
+
+    # Same per-fold pipeline as compute_ceiling: StandardScaler fit per fold +
+    # class-weighted LR. Keeps floor and ceiling unit-consistent on the fair view.
+    clf = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(max_iter=2000, class_weight="balanced", random_state=seed),
+    )
+
+    n_unique = len(set(groups.tolist()))
+    eff_splits = min(n_splits, n_unique)
+    if eff_splits >= 2:
+        cv = StratifiedGroupKFold(n_splits=eff_splits, shuffle=True, random_state=seed)
+        oof = cross_val_predict(
+            clf, fps, y, cv=cv, groups=groups, method="predict_proba"
+        )[:, 1]
+    else:
+        # Degenerate: <2 distinct drugs -- no grouped split possible (mirror ceiling).
+        oof = cross_val_predict(
+            clf,
+            fps,
+            y,
+            cv=StratifiedKFold(
+                n_splits=max(2, min(n_splits, len(y))),
+                shuffle=True,
+                random_state=seed,
+            ),
+            method="predict_proba",
+        )[:, 1]
+
+    auroc = float(roc_auc_score(y, oof))
+
+    log.info(
+        "floor_profile_disjoint_auroc: n_profiles=%d n_drugs=%d auroc=%.4f seed=%d",
+        len(y),
+        n_unique,
+        auroc,
+        seed,
+    )
+
+    return auroc
