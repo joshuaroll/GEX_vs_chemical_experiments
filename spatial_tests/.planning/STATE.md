@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: **PHASE 1 COMPLETE (2026-06-23, 8/8 plans, verification 9/9). Halt Gate 2 fired as intended → reframed + documented; halt LIFTED per D-10. Phase 2 UNBLOCKED — next milestone step.**
 stopped_at: Executed + verified the 2×2-completion gap-closure (01-08). Completed the floor×ceiling × leaky×disjoint 2×2 (floor-leaky 0.999 ≥ ceiling-leaky 0.912 → "explains the paper"; floor-disjoint 0.546 vs ceiling-disjoint 0.605, gap +0.059 CI [0.026, 0.092]); appended the dated RESOLUTION un-halt note to HALT_REASON.md (D-10). Verifier PASSED 9/9; full suite 168 passed. Phase 1 marked complete; Phase 2 unblocked.
-last_updated: "2026-06-23T23:55:00.000Z"
-last_activity: 2026-06-23
+last_updated: "2026-06-24T00:30:00.000Z"
+last_activity: 2026-06-24
 progress:
   total_phases: 8
   completed_phases: 2
@@ -23,7 +23,7 @@ progress:
 - **Project:** Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
 - **Root:** `/raid/home/joshua/projects/GEX_vs_chemical_experiments/spatial_tests/` (subdir of umbrella repo `GEX_vs_chemical_experiments`; no own `.git`).
 - **Core value:** Does a predicted, region-resolved molecular response signature predict organ-specific drug toxicity better than chemical structure alone, and does that signal translate across species (rodent → human)?
-- **Current focus:** Phase 01 — eda-the-bracket
+- **Current focus:** Phase 02 — multidcp-wiring-tox-head (CONTEXT gathered 2026-06-24; ready to plan)
 - **Isolation note:** This is a standalone GSD project. NEVER read/write `/raid/home/joshua/.planning` (separate, halted "liver" v0.5 project).
 
 ## Current Position
