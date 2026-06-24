@@ -48,45 +48,11 @@ from src.spatial.region_signature import (
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def three_genes():
-    """Gene ID tuple with 3 elements (small fixture for readable assertions)."""
-    return ("GENE_A", "GENE_B", "GENE_C")
-
-
-@pytest.fixture
-def two_regions():
-    """Two region labels."""
-    return ["periportal", "pericentral"]
-
-
-@pytest.fixture
-def two_pert_ids():
-    """Two perturbation IDs."""
-    return ["drug_X", "drug_Y"]
-
-
-@pytest.fixture
-def small_manifest(two_pert_ids, two_regions, three_genes):
-    """Manifest for 2 pert_ids × 2 regions × 3 genes (multidcp_pdg)."""
-    return build_manifest(
-        pert_ids=two_pert_ids,
-        regions=two_regions,
-        gene_ids=list(three_genes),
-        model_variant="multidcp_pdg",
-    )
-
-
-@pytest.fixture
-def region_basal_map(two_regions, three_genes):
-    """Synthetic basal vectors, shape (3,) each, for two regions."""
-    rng = np.random.default_rng(42)
-    return {
-        region: rng.standard_normal(len(three_genes)).astype(np.float32)
-        for region in two_regions
-    }
+# NOTE (Phase 2 / Wave 0): the shared fixtures `three_genes`, `two_regions`,
+# `two_pert_ids`, `small_manifest`, `region_basal_map` now live in
+# `tests/spatial/conftest.py` and resolve via pytest fixture discovery. The new
+# Phase-2 fixtures `synthetic_treated_control` and `gene_order_slice` are also
+# defined there. Do NOT redefine them here.
 
 
 def _make_predicted_treated_map(
@@ -748,3 +714,103 @@ class TestRegionDEContainer:
             de_vector=np.zeros(3, dtype=np.float32), n_genes=3
         )
         assert isinstance(rde, tuple)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 / Wave 0 — RED contracts for rule B + the 3-vector cache (D-02/D-03)
+# ---------------------------------------------------------------------------
+# These tests assert the NEW Phase-2 contracts that land in 02-02:
+#   * compute_de subtracts a SECOND PREDICTED vector (rule B), and the manifest
+#     de_convention string records "predicted_treated(drug) - predicted_control".
+#   * RegionSignatureCache carries treated_array AND control_array AND de_array
+#     (D-03), and assemble_cache accepts a predicted_control_map.
+#   * N_PDG == 10716 is a module constant alongside N_LANDMARK (D-01).
+# They are EXPECTED to FAIL (RED) now: the current rule-A convention string,
+# the 1-vector cache, and the missing N_PDG constant. 02-02 flips them to GREEN
+# by editing source only.
+
+
+class TestRuleBAndThreeVectorCache:
+    """RED until 02-02: rule-B DE convention + 3-vector cache + N_PDG."""
+
+    def test_rule_b_de_subtracts_control(self, synthetic_treated_control):
+        # RED until 02-02
+        treated, control = synthetic_treated_control
+
+        # The rule-B subtraction itself: treated - control, element-wise float32.
+        de = compute_de(treated, control)
+        np.testing.assert_array_almost_equal(de, treated - control)
+        assert de.dtype == np.float32
+
+        # Force RED on the convention string: the manifest must record the
+        # rule-B convention. The current source returns the rule-A string.
+        manifest = build_manifest(
+            pert_ids=["drug_X"],
+            regions=["pericentral"],
+            gene_ids=["GENE_A", "GENE_B", "GENE_C"],
+            model_variant="multidcp_chemoe",
+        )
+        assert manifest.de_convention == (
+            "predicted_treated(drug) - predicted_control(region_basal)"
+        ), (
+            "Phase-2 rule B (D-02): de_convention must record the "
+            "predicted-control subtraction, not the rule-A region_basal string."
+        )
+
+    def test_cache_three_vector_schema(self):
+        # RED until 02-02
+        pert_ids = ["drug_1", "drug_2"]
+        regions = ["pericentral", "periportal"]
+        gene_ids = ["G1", "G2", "G3", "G4"]
+        n_p, n_r, n_g = len(pert_ids), len(regions), len(gene_ids)
+
+        manifest = build_manifest(
+            pert_ids=pert_ids,
+            regions=regions,
+            gene_ids=gene_ids,
+            model_variant="multidcp_chemoe",
+        )
+
+        rng = np.random.default_rng(3)
+        predicted_treated_map = {
+            (p, r): rng.standard_normal(n_g).astype(np.float32)
+            for p in pert_ids
+            for r in regions
+        }
+        predicted_control_map = {
+            (p, r): rng.standard_normal(n_g).astype(np.float32)
+            for p in pert_ids
+            for r in regions
+        }
+
+        # Rule-B assembly takes a predicted_control_map (NOT a region_basal_map).
+        # Current assemble_cache signature differs -> TypeError RED now.
+        cache = assemble_cache(
+            predicted_treated_map, predicted_control_map, manifest
+        )
+
+        # 3-vector schema (D-03): all three arrays present, same shape, float32.
+        for attr in ("treated_array", "control_array", "de_array"):
+            assert hasattr(cache, attr), (
+                f"RegionSignatureCache must expose '{attr}' (D-03 3-vector cache)."
+            )
+        expected_shape = (n_p, n_r, n_g)
+        assert cache.treated_array.shape == expected_shape
+        assert cache.control_array.shape == expected_shape
+        assert cache.de_array.shape == expected_shape
+        assert cache.treated_array.dtype == np.float32
+        assert cache.control_array.dtype == np.float32
+        assert cache.de_array.dtype == np.float32
+
+        # de_array == treated_array - control_array (rule B at the cache layer).
+        np.testing.assert_array_almost_equal(
+            cache.de_array, cache.treated_array - cache.control_array
+        )
+
+    def test_n_pdg_constant(self):
+        # RED until 02-02 (ImportError on the missing constant; D-01).
+        from src.spatial.region_signature import N_PDG
+
+        assert N_PDG == 10716, (
+            f"N_PDG must be 10716 (MultiDCP-CheMoE PDG gene space); got {N_PDG}."
+        )
