@@ -140,6 +140,8 @@ from src.spatial.eda.floor import (  # noqa: E402
     compute_floor,
     floor_probabilities,
     floor_profile_disjoint_auroc,
+    floor_profile_disjoint_oof,
+    floor_profile_leaky_auroc,
 )
 from src.spatial.eda.ceiling import load_ceiling, compute_ceiling  # noqa: E402
 from src.spatial.eda.bootstrap import paired_bootstrap_auroc_gap, BootstrapResult  # noqa: E402
@@ -618,6 +620,7 @@ def run_gap_and_gate(
     fps_rows = []
     y_rows = []
     groups_rows = []
+    kept_idx = []  # original ceiling-aligned row indices kept (to slice de_aligned)
     for i in range(len(drug_key)):
         fp = floor_fp_by_drug.get(drug_key[i])
         if fp is None:
@@ -625,6 +628,7 @@ def run_gap_and_gate(
         fps_rows.append(fp)
         y_rows.append(int(y_profiles[i]))
         groups_rows.append(drug_key[i])
+        kept_idx.append(i)
 
     n_kept = len(fps_rows)
     n_kept_drugs = len(set(groups_rows))
@@ -670,6 +674,90 @@ def run_gap_and_gate(
             f"| Ceiling minus floor (profile-disjoint) | {delta:+.4f} |\n\n"
             f"(For reference, the leaky profile-level ceiling is "
             f"{ceiling_auroc_profile_leaky:.4f}; see the EDA-02 leakage decomposition.)\n\n"
+        )
+
+        # --------------------------------------------------------------
+        # Completed 2x2: floor x ceiling, leaky x disjoint (D-09)
+        # --------------------------------------------------------------
+        # Floor-leaky cell on the SAME kept profile set: random StratifiedKFold
+        # (no groups), mirroring _leakage_decomposition's leaky path. Fills the
+        # last empty cell so all four sit on a consistent profile set.
+        floor_auroc_profile_leaky = floor_profile_leaky_auroc(
+            fps_prof, y_kept, n_splits=5, seed=42
+        )
+        report_lines.append(
+            "### Completed 2x2: floor x ceiling, leaky x disjoint (D-09)\n\n"
+        )
+        report_lines.append(
+            "|          | Leaky (paper's random-profile split) | Drug-disjoint (honest) |\n"
+            "|----------|--------------------------------------|------------------------|\n"
+            f"| Ceiling  | {ceiling_auroc_profile_leaky:.4f}    | {ceiling_auroc_profile_disjoint:.4f} |\n"
+            f"| Floor    | {floor_auroc_profile_leaky:.4f}      | {floor_auroc_profile_disjoint:.4f}   |\n\n"
+        )
+        report_lines.append(
+            f"All four cells sit on the SAME kept profile set ({n_kept} profiles, "
+            f"{n_kept_drugs} drugs) for consistency. **Diagnostic reading:** if "
+            f"floor-leaky ({floor_auroc_profile_leaky:.3f}) is approximately "
+            f"ceiling-leaky ({ceiling_auroc_profile_leaky:.3f}, ~0.912), then the "
+            "Wang/Li headline (~0.798) is largely drug-identity memorization that "
+            "chemical structure reproduces on its own -- measured biology adds "
+            "little even in its own favorable (leaky) setup. This is the cell that "
+            "\"explains the paper\" (D-09): the leaky column is the diagnostic, the "
+            "drug-disjoint column is the fair verdict.\n\n"
+        )
+
+        # --------------------------------------------------------------
+        # Profile-level drug-disjoint gap -- 95% paired-bootstrap CI (D-09)
+        # --------------------------------------------------------------
+        # Aligned per-profile OOF vectors for BOTH sides on the SAME kept rows and
+        # SAME StratifiedGroupKFold drug folds (seed=42), so the CI is paired and
+        # leakage-free. Documentation for honesty, NOT a new hard gate.
+        from sklearn.model_selection import (
+            StratifiedGroupKFold as _SGKF,
+            cross_val_predict as _cvp,
+        )
+        from sklearn.pipeline import make_pipeline as _mkpipe
+        from sklearn.preprocessing import StandardScaler as _SS
+        from sklearn.linear_model import LogisticRegression as _LR
+
+        floor_oof = floor_profile_disjoint_oof(
+            fps_prof, y_kept, groups_kept, n_splits=5, seed=42
+        )
+        # Ceiling-disjoint OOF on EXACTLY the kept profiles + same drug folds.
+        de_aligned = ceiling_data["de_aligned"]
+        de_kept = de_aligned[np.asarray(kept_idx)]
+        eff = min(5, len(set(groups_kept.tolist())))
+        clf_c = _mkpipe(
+            _SS(),
+            _LR(max_iter=2000, class_weight="balanced", random_state=42),
+        )
+        cv_c = _SGKF(n_splits=eff, shuffle=True, random_state=42)
+        ceil_oof = _cvp(
+            clf_c, de_kept, y_kept, cv=cv_c, groups=groups_kept,
+            method="predict_proba",
+        )[:, 1].astype(float)
+
+        pd_boot = paired_bootstrap_auroc_gap(
+            y_kept, floor_oof, ceil_oof, n_resamples=10_000, seed=42
+        )
+
+        report_lines.append(
+            "### Profile-level drug-disjoint gap -- 95% paired-bootstrap CI (D-09)\n\n"
+        )
+        report_lines.append(
+            "| Profile-level drug-disjoint gap (ceiling - floor) | Value |\n"
+            "|--------|-------|\n"
+            f"| Gap (point) | {pd_boot.gap_observed:+.4f} |\n"
+            f"| 95% CI [lo, hi] | [{pd_boot.ci_lower:.4f}, {pd_boot.ci_upper:.4f}] |\n"
+            f"| Bootstrap resamples (valid) | {pd_boot.n_resamples_valid:,} / 10,000 |\n\n"
+        )
+        report_lines.append(
+            "Both OOF vectors come from the SAME kept profile rows "
+            f"({n_kept} profiles, {n_kept_drugs} drugs) and the SAME "
+            "StratifiedGroupKFold drug folds (seed=42), so this is a paired, "
+            "leakage-free estimate of the +0.059 profile-disjoint gap. "
+            "This is documentation for honesty, not a new hard gate; the PRIMARY "
+            "drug-level Halt Gate 2 above is unchanged.\n\n"
         )
     else:
         report_lines.append(
