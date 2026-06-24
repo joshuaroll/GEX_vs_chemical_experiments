@@ -41,14 +41,14 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   3. Region diagnostics (basal-profile similarity, spatially-variable-gene retention via Moran's I, gene coverage) and cross-species diagnostics (ortholog overlap, human-vs-rodent basal correlation, OOD distance from the cancer-line manifold) are reported.
   4. `results/tables/P1_eda.md` states the floor-ceiling gap, region distinguishability, and human-rodent basal concordance.
 **Halt gate**: HALT GATE 2 — floor-ceiling gap near zero for the organ → write `HALT_REASON.md`, reframe before training.
-**Plans**: 7 plans (6 executed; 01-07 gap-closure added 2026-06-23 post-Halt-Gate-2 reframe, ready to execute)
+**Plans**: 7 plans (all executed; 01-07 gap-closure added 2026-06-23 post-Halt-Gate-2 reframe, EXECUTED 2026-06-23)
   - [x] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03) [DONE 2026-06-23]
   - [x] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01) [DONE 2026-06-23]
   - [x] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01) [DONE 2026-06-23]
   - [x] 01-04-PLAN.md — Wave 1: measured ceiling (participation ratio, per-gene MI, AUROC) + paired-bootstrap gap CI (EDA-02) [DONE 2026-06-23]
   - [x] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03) [DONE 2026-06-23]
   - [x] 01-06-PLAN.md — Wave 2: run_p1_eda.py driver on real data → P1_eda.md + Halt Gate 2 (EDA-01/02/03)
-  - [ ] 01-07-PLAN.md — Wave 3 *(gap-closure; depends on 01-03/04/06)*: profile-level drug-disjoint floor → true head-to-head bracket + D-07 guidance (EDA-01/03) [PLANNED 2026-06-23]
+  - [x] 01-07-PLAN.md — Wave 3 *(gap-closure; depends on 01-03/04/06)*: profile-level drug-disjoint floor → true head-to-head bracket + D-07 guidance (EDA-01/03) [DONE 2026-06-23 — floor 0.5461 vs ceiling 0.6052 profile-disjoint; halt stands]
 
 ### Phase 2: MultiDCP wiring & toxicity head
 **Goal**: A working end-to-end forward path from drug + region basal to an organ-tox logit using the frozen baseline, validated against the APAP anchor.
@@ -127,7 +127,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Dataset acquisition & MANIFEST | 4/4 | Complete    | 2026-06-23 |
-| 1. EDA (the bracket) | 6/7 | Halted (Gate 2 fired); 01-07 gap-closure planned | - |
+| 1. EDA (the bracket) | 7/7 | Halted (Gate 2 fired); 01-07 gap-closure executed (head-to-head + D-07 done; halt stands) | - |
 | 2. MultiDCP wiring & toxicity head | 0/0 | Not started | - |
 | 3. Splits & no-leakage | 0/0 | Not started | - |
 | 4. Per-organ train/test (human first) | 0/0 | Not started | - |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. Gap-closure plan 01-07 PLANNED + plan-checker PASSED, ready to execute (does NOT un-halt).**
-stopped_at: Phase 1 reframe gap-closure plan 01-07 written + verified (VERIFICATION PASSED, 1st iteration); ready to execute. Halt Gate 2 still fired; Phase 2 still blocked.
-last_updated: "2026-06-23T21:00:00.000Z"
+status: **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. Gap-closure plan 01-07 EXECUTED + COMPLETE (does NOT un-halt; Phase 2 still blocked).**
+stopped_at: Phase 1 reframe gap-closure plan 01-07 EXECUTED (3 tasks, all committed; SUMMARY written). Halt Gate 2 still fired; Phase 2 still blocked.
+last_updated: "2026-06-23T21:30:00.000Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 11
-  completed_plans: 10
-  percent: 91
+  completed_plans: 11
+  percent: 100
 ---
 
 # STATE: Spatial Cross-Species Toxicity Prediction (MultiDCP-CheMoE)
@@ -28,17 +28,17 @@ progress:
 
 ## Current Position
 
-Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; gap-closure plan 01-07 PLANNED & verified
-Plan: 6 of 6 executed; 01-07 (gap-closure) planned, ready to execute
+Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; gap-closure plan 01-07 EXECUTED + COMPLETE
+Plan: 7 of 7 executed (01-07 gap-closure complete)
 
 - **Phase:** 1
-- **Plan:** 01-06 COMPLETE; **01-07 PLANNED + plan-checker PASSED** (Wave 3, gap-closure — adds the floor's profile-level drug-disjoint AUROC so the profile-level sensitivity view is a true floor-vs-ceiling head-to-head, per D-06; writes the D-07 guidance note; preserves the halt).
-- **Status:** **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. 01-07 is a reporting/bracket completion that does NOT un-halt.**
-- **Progress:** `[##################  ] P1: 6/6 executed; 1 gap-closure plan ready; outcome = halt/reframe`
+- **Plan:** 01-06 COMPLETE; **01-07 EXECUTED + COMPLETE** (Wave 3, gap-closure — added the floor's profile-level drug-disjoint AUROC so the profile-level sensitivity view is now a true floor-vs-ceiling head-to-head, per D-06; wrote the D-07 guidance note; preserved the halt). Head-to-head: floor(profile-disjoint)=0.5461 vs ceiling(profile-disjoint)=0.6052, +0.0590 on 2648 profiles / 227 drugs (same drug folds, seed=42).
+- **Status:** **HALTED — Halt Gate 2 FIRED → stop-and-REFRAME (D-02). Phase 2 BLOCKED. 01-07 was a reporting/bracket completion that does NOT un-halt.**
+- **Progress:** `[####################] P1: 7/7 executed (incl. 01-07 gap-closure); outcome = halt/reframe`
 
 **Halt Gate 2 result (leakage-corrected):** structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES. Robust headline finding: the Wang/Li-style benchmark is **+0.31 AUROC drug-leakage-inflated** (profile-level 0.912 leaky vs 0.605 drug-disjoint); honest measured ≈ structure at the fair level; the drug-aggregated gate is underpowered (38 negative drugs). See `results/tables/P1_eda.md` + `.planning/phases/01-eda-the-bracket/HALT_REASON.md`.
 
-**Next action:** Gap-closure plan **01-07 is PLANNED + plan-checker PASSED** (2026-06-23). **Execute it:** `/gsd-execute-phase 1` (runs the single Wave-3 gap-closure plan: adds `floor_profile_disjoint_auroc` to floor.py, wires the profile-level drug-disjoint head-to-head into P1_eda.md beside the ceiling's number, writes the D-07 guidance note, adds a no-drug-leakage regression test). The halt STANDS — executing 01-07 does NOT un-halt; Phase 2 stays BLOCKED. Open flags still owed to the NEXT gate review (NOT this pass): power the gate (38 negatives), milestone go-no-go (honest measured ≈ structure ~0.61).
+**Next action:** Gap-closure plan **01-07 is EXECUTED + COMPLETE** (2026-06-23) — `floor_profile_disjoint_auroc` added to floor.py, the profile-level drug-disjoint head-to-head wired into P1_eda.md beside the ceiling's number (floor 0.5461 vs ceiling 0.6052, +0.0590 on 2648 profiles / 227 drugs, seed=42), D-07 guidance note written, no-drug-leakage regression test GREEN. **The halt STANDS — 01-07 did NOT un-halt; Phase 2 stays BLOCKED.** Next is the **NEXT gate review** (a `/gsd-discuss-phase` on the halt, not Phase 2 execution): decide whether/how to proceed past the halt. Open flags owed to that review: power the gate (38 negatives), milestone go-no-go (honest measured ≈ structure ~0.61).
 
 ## Performance Metrics
 
@@ -159,5 +159,5 @@ Plan: 6 of 6 executed; 01-07 (gap-closure) planned, ready to execute
 ## Session Continuity
 
 - **Last activity:** 2026-06-23
-- **Stopped at:** Gap-closure plan **01-07 written + plan-checker PASSED (1st iteration, no revisions)**. Phase 1 now has 7 plans (6 executed, 01-07 ready). Halt Gate 2 still fired.
-- **Resume with:** `/gsd-execute-phase 1` — execute the single Wave-3 gap-closure plan 01-07 (floor profile-disjoint head-to-head + D-07 guidance note in P1_eda.md). Do NOT execute Phase 2 (still BLOCKED by Halt Gate 2). Plan: `.planning/phases/01-eda-the-bracket/01-07-PLAN.md`; reframe decisions: `01-CONTEXT.md` D-06/D-07; halt record: `HALT_REASON.md`.
+- **Stopped at:** Gap-closure plan **01-07 EXECUTED + COMPLETE** (3 tasks, all committed: a9b866b floor function + test, a609cfd driver wiring, 8fd07ee regenerated P1_eda.md; SUMMARY at `01-07-SUMMARY.md`). Phase 1 now has 7 plans, all executed. Halt Gate 2 still fired; Phase 2 still BLOCKED.
+- **Resume with:** the **NEXT gate review** — `/gsd-discuss-phase 1` on the halt to decide whether/how to proceed past Halt Gate 2 (open flags: power the gate / 38 negatives; milestone go-no-go, honest measured ≈ structure ~0.61). Do NOT execute Phase 2 (still BLOCKED by Halt Gate 2). Artifacts: `results/tables/P1_eda.md` (profile-disjoint head-to-head + D-07 note); reframe decisions `01-CONTEXT.md` D-06/D-07; halt record `HALT_REASON.md`; summary `01-07-SUMMARY.md`.

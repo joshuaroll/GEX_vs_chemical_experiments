@@ -170,9 +170,9 @@ Supporting detail attributed inline. v1 = all 8 phase requirements (this milesto
 | DATA-01 | P0 | Complete |
 | DATA-02 | P0 | Complete |
 | DATA-03 | P0 | Complete |
-| EDA-01 | P1 | Pending |
+| EDA-01 | P1 | Complete (floor + profile-disjoint head-to-head in P1_eda.md; 01-07) |
 | EDA-02 | P1 | Complete |
-| EDA-03 | P1 | In Progress (library complete; P1_eda.md in 01-06) |
+| EDA-03 | P1 | Complete (region + cross-species diagnostics + D-07 guidance in P1_eda.md; 01-07) |
 | WIRE-01 | P2 | Pending |
 | WIRE-02 | P2 | Pending |
 | WIRE-03 | P2 | Pending |
