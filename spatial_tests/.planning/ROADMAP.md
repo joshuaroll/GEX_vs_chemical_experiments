@@ -41,7 +41,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   3. Region diagnostics (basal-profile similarity, spatially-variable-gene retention via Moran's I, gene coverage) and cross-species diagnostics (ortholog overlap, human-vs-rodent basal correlation, OOD distance from the cancer-line manifold) are reported.
   4. `results/tables/P1_eda.md` states the floor-ceiling gap, region distinguishability, and human-rodent basal concordance.
 **Halt gate**: HALT GATE 2 — floor-ceiling gap near zero for the organ → write `HALT_REASON.md`, reframe before training.
-**Plans**: 7 plans (all executed; 01-07 gap-closure added 2026-06-23 post-Halt-Gate-2 reframe, EXECUTED 2026-06-23)
+**Plans**: 8 plans (01-01..01-07 executed; 01-08 gap-closure planned 2026-06-23 — the 2×2-completion that un-halts per D-08/D-09/D-10)
   - [x] 01-01-PLAN.md — Wave 0: Nyquist test scaffolds + MANIFEST provenance for reused v0.5 inputs (EDA-01/02/03) [DONE 2026-06-23]
   - [x] 01-02-PLAN.md — Wave 0: shared data-prep libs (labels D-04, SMILES cascade D-03, RDKit ECFP4) (EDA-01) [DONE 2026-06-23]
   - [x] 01-03-PLAN.md — Wave 1: structure-only floor (LR+RF on ECFP4, entropy/balance/AUPRC) (EDA-01) [DONE 2026-06-23]
@@ -49,6 +49,7 @@ This arm EXTENDS the existing `src/spatial/` module (124 passing fixture tests).
   - [x] 01-05-PLAN.md — Wave 1: region diagnostics (Moran's I SVG retention, basal similarity) + cross-species (ortholog corr, Mahalanobis OOD) (EDA-03) [DONE 2026-06-23]
   - [x] 01-06-PLAN.md — Wave 2: run_p1_eda.py driver on real data → P1_eda.md + Halt Gate 2 (EDA-01/02/03)
   - [x] 01-07-PLAN.md — Wave 3 *(gap-closure; depends on 01-03/04/06)*: profile-level drug-disjoint floor → true head-to-head bracket + D-07 guidance (EDA-01/03) [DONE 2026-06-23 — floor 0.5461 vs ceiling 0.6052 profile-disjoint; halt stands]
+  - [ ] 01-08-PLAN.md — Wave 4 *(gap-closure; depends on 01-06/07)*: 2×2 completion — add floor-leaky cell (`floor_profile_leaky_auroc`) + paired-bootstrap CI on the profile-disjoint gap; record un-halt in HALT_REASON.md (EDA-01/02, D-08/D-09/D-10) [PLANNED 2026-06-23 — on execution the halt LIFTS, Phase 2 unblocks regardless of sign]
 
 ### Phase 2: MultiDCP wiring & toxicity head
 **Goal**: A working end-to-end forward path from drug + region basal to an organ-tox logit using the frozen baseline, validated against the APAP anchor.

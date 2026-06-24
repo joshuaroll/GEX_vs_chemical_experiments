@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **HALT REVIEW DONE (D-08/D-09/D-10). Un-halt path locked: plan + execute the 2×2-completion gap-closure (add floor-leaky), then the halt LIFTS and Phase 2 unblocks regardless of sign. Phase 2 BLOCKED until that 2×2 plan executes.**
-stopped_at: Next gate review complete — D-08 (power gate first, then proceed regardless), D-09 (replicate Wang/Li symmetrically; add floor-leaky to complete the 2×2; no negative-set expansion), D-10 (bracket = documentation; Phase 2 unblocks once 2×2 written). CONTEXT.md + DISCUSSION-LOG.md updated. Ready to plan the 2×2-completion gap-closure.
-last_updated: "2026-06-23T22:00:00.000Z"
+status: **2×2-completion gap-closure PLANNED (01-08). Ready to execute. On execution the halt LIFTS and Phase 2 unblocks regardless of sign (D-08/D-09/D-10). Phase 2 BLOCKED until 01-08 executes.**
+stopped_at: Planned the 2×2-completion gap-closure (01-08-PLAN.md, wave 4, depends_on [01-06, 01-07]; plan-checker PASSED). Adds floor-leaky cell (`floor_profile_leaky_auroc`, random StratifiedKFold no-groups, seed=42), writes the completed floor×ceiling × leaky×disjoint 2×2 with the "explains the paper" diagnostic, adds a 95% paired-bootstrap CI on the profile-disjoint gap (10k resamples, seed=42), and appends the un-halt RESOLUTION note to HALT_REASON.md (D-10). PRIMARY drug-level gate / gate_fires / sys.exit(1) untouched.
+last_updated: "2026-06-23T23:30:00.000Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 8
@@ -28,8 +28,8 @@ progress:
 
 ## Current Position
 
-Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; gap-closure plan 01-07 EXECUTED + COMPLETE
-Plan: 7 of 7 executed (01-07 gap-closure complete)
+Phase: 01 (eda-the-bracket) — EXECUTED + **HALTED (Halt Gate 2 fired)**; 01-07 COMPLETE; **01-08 (2×2-completion gap-closure) PLANNED + checker-PASSED, ready to execute**
+Plan: 7 of 8 executed; 01-08 planned (un-halt plan)
 
 - **Phase:** 1
 - **Plan:** 01-06 COMPLETE; **01-07 EXECUTED + COMPLETE** (Wave 3, gap-closure — added the floor's profile-level drug-disjoint AUROC so the profile-level sensitivity view is now a true floor-vs-ceiling head-to-head, per D-06; wrote the D-07 guidance note; preserved the halt). Head-to-head: floor(profile-disjoint)=0.5461 vs ceiling(profile-disjoint)=0.6052, +0.0590 on 2648 profiles / 227 drugs (same drug folds, seed=42).
