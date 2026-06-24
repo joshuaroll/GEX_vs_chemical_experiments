@@ -134,3 +134,39 @@
 ## Deferred / flagged (reframe)
 - Power the gate (expand negatives: DILIrank ∪ DILIst, relax Ambiguous, scaffold-level) — deferred to next gate review (38 negatives → underpowered).
 - Redefine Halt Gate 2 / milestone go-no-go — not reframed; ⚠ open flag: honest measured ceiling ≈ structure floor, so the predicted-signature milestone bet is a steep hill (Phase 2 stays alive as the still-untested question).
+
+---
+
+# Next gate review (2026-06-23, post-01-07) — resolves the two deferred flags
+
+## Go/no-go past Halt Gate 2 (→ D-08)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Power the gate first | Resolve the underpower + sign conflict, re-run, THEN decide Phase 2. Phase 1 stays open. | ✓ |
+| Proceed to Phase 2 (reframed) | Treat bracket as "measured ≈ structure, benchmark inflated"; unblock Phase 2 now. | |
+| Reframe as negative result | Make the +0.31 leakage finding the deliverable; pause modeling. | |
+
+**User's choice:** Power the gate first.
+**Notes:** Sign conflict surfaced — drug-level gate fires (−0.177, underpowered, below-chance 0.434 ceiling) but the better-powered profile-level drug-disjoint view shows +0.059.
+
+## Powering strategy (→ D-09)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Replicate paper symmetrically (complete the 2×2) | Add the missing floor-leaky cell; run floor+ceiling at profile granularity under both the paper's random-profile (leaky) split and the drug-disjoint split. Well-powered, no label surgery. | ✓ |
+| Replicate paper AND expand negatives | 2×2 + DILIrank∪DILIst negatives for the drug-level gate too. | |
+| Expand drug-level negatives only | Keep drug as unit; grow negatives past 38; re-run drug-level gate. | |
+
+**User's prompt:** "why not do exactly what the paper baseline did" — led to recognizing the 38-negative crisis is a self-inflicted artifact of drug-level aggregation, absent at the paper's profile granularity.
+**User's choice:** Replicate paper symmetrically. Missing cell = floor under the paper's leaky split; if floor-leaky ≈ ceiling-leaky (0.912), the Wang/Li headline is structure-memorization, not biology. Drug-disjoint column stays the fair verdict (D-06); leaky = diagnostic. No negative-set expansion.
+
+## What un-halts / decision rule (→ D-10)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Drug-disjoint gap CI gates Phase 2 | Paired-bootstrap CI on the profile-level drug-disjoint gap; CI > 0 → Phase 2, CI ∩ 0 → stay halted. | |
+| Proceed to Phase 2 regardless (bracket is documentation) | The PREDICTED region-resolved signal is untested by floor or measured ceiling; un-halt once the 2×2 is written, regardless of sign. Measured null raises the bar. | ✓ |
+| Decide when the number lands | Lock the computation; defer the verdict to a judgment call. | |
+
+**User's choice:** Proceed to Phase 2 regardless. The 2×2 is honest documentation; a measured null/marginal result raises the bar for Phase 2 but the predicted-signature question is the real, untested test. Still compute the drug-disjoint gap CI for honest documentation.

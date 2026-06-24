@@ -2,7 +2,8 @@
 
 **Gathered:** 2026-06-22
 **Reframed:** 2026-06-23 (post-Halt-Gate-2 — see "Reframe" decisions D-06/D-07 and the Phase 1 Outcome note)
-**Status:** Ready for replanning (gap-closure)
+**Gate review:** 2026-06-23 (post-01-07 — see "Next gate review" decisions D-08/D-09/D-10; resolves the two deferred flags)
+**Status:** Ready for replanning (2×2 completion gap-closure → halt lifts → Phase 2 unblocks)
 
 <domain>
 ## Phase Boundary
@@ -24,6 +25,58 @@ only here.
 
 <decisions>
 ## Implementation Decisions
+
+### Next gate review (2026-06-23, post-01-07) — resolves the two deferred gate-review flags
+
+The 01-07 head-to-head exposed a sign conflict: the PRIMARY **drug-level** gate fires
+(floor 0.611 vs ceiling 0.434, gap −0.177) but is underpowered (38 negatives, MDE 0.198
+> 0.177, and a below-chance 0.434 ceiling from collapsing 227 drugs onto 38 negatives),
+while the better-powered **profile-level drug-disjoint** view shows a small *positive*
+measured lift (floor 0.546 vs ceiling 0.605, +0.059). The honest status was
+"inconclusive, leaning no-lift, **underpowered**", not a clean negative. Three decisions
+resolve the two flags the previous reframe deferred:
+
+- **D-08 (go/no-go past Halt Gate 2): power the gate first, then proceed to Phase 2
+  regardless of sign.** The halt lifts by *completing the honest bracket documentation*,
+  not by a positive gate result. The drug-level gate (D-02/D-06) is acknowledged
+  hopelessly underpowered and is **not** re-powered by label-set expansion (negative-set
+  surgery declined — see D-09 rationale). The bracket is instead completed at the paper's
+  profile granularity. Once the 2×2 is written, Phase 2 unblocks. Rationale: the milestone
+  bet is the **predicted, region-resolved** signature, which neither the structure floor
+  nor the measured ceiling tests; a null/marginal measured result raises the bar for
+  Phase 2 but does not kill it.
+
+- **D-09 (powering strategy = replicate the Wang/Li baseline symmetrically; complete the
+  2×2).** "Exactly what the paper did" = profile-level evaluation on the 6,000 LINCS
+  profiles under a **random-profile (leaky) 80/20 split** → the 0.912 leaky ceiling we
+  already reproduce (≈/> the published 0.798). The 38-negative power crisis is an artifact
+  of D-06's drug-level aggregation, **absent at profile granularity** (2648 profiles), so
+  no negative expansion is needed. The missing cell is the **structure floor under the
+  paper's leaky split** — add it (LR on ECFP4, random `StratifiedKFold` profile split,
+  seed=42, mirroring the ceiling's `_leakage_decomposition`) to fill the floor×ceiling ×
+  leaky×disjoint **2×2**:
+  - **Leaky column (paper's exact setup) — DIAGNOSTIC:** ceiling 0.912 vs floor [new]. If
+    floor-leaky ≈ ceiling-leaky, the Wang/Li headline (≈0.798) is largely drug-identity
+    memorization that **structure reproduces** → measured biology adds little even in its
+    own favorable setup. This is the cell that explains the paper.
+  - **Drug-disjoint column (honest) — FAIR VERDICT (D-06):** ceiling 0.605 vs floor 0.546
+    (+0.059), well-powered at profile level. Add a **paired-bootstrap CI** on this gap for
+    honest documentation.
+  Negative-set options (DILIrank∪DILIst union, relax DILIrank Ambiguous, scaffold-level)
+  all **declined** — they fight the label set to fix a self-inflicted aggregation problem.
+  D-09 promotes the profile-level drug-disjoint view from D-06's "supporting sensitivity
+  view" to the **practically-decisive fair comparison** (drug-level can't be powered
+  without the declined surgery; the paper is profile-level anyway). The drug-level gate is
+  still reported, labeled underpowered.
+
+- **D-10 (what un-halts): the bracket is documentation; Phase 2 unblocks once the 2×2 is
+  written, regardless of the gap sign.** The leaky 2×2 is reported as diagnostic (explains
+  the paper); the drug-disjoint gap + CI is the fair, honest verdict but is **not a hard
+  gate** on Phase 2. Halt Gate 2's stop-and-REFRAME (D-02) is *satisfied* by this
+  documentation; the reframe headline = "the Wang/Li benchmark is drug-leakage-inflated;
+  measured DE gives no clear honest lift over structure; the live bet is the predicted
+  region-resolved signal." After the 2×2 plan executes, the halt lifts and Phase 2 (HALT
+  GATE 3) begins.
 
 ### Reframe (2026-06-23, post-Halt-Gate-2) — supersedes the footing of D-02/D-03/D-05
 
@@ -171,9 +224,17 @@ reproducible in `P1_eda.md`): profile-level measured AUROC is **0.912 leaky vs
 - **Rodent structure-floor + rodent labels** — deferred to the rodent pass.
 - **Rodent toxicogenomics ceiling** (Open TG-GATEs / DrugMatrix) — acquire + bracket when the rodent arm starts.
 
-### Considered this reframe but NOT selected (revisit at the next gate review)
-- **Power the gate (expand negatives).** The shared set has only 38 negative drugs (drug-level gate underpowered: MDE 0.198 > observed 0.177). DILIrank ∪ DILIst / relaxing Ambiguous / scaffold-level were offered but deferred. Flag for the next gate review.
-- **Redefine Halt Gate 2 / milestone go-no-go.** Not reframed this pass. ⚠ **Open flag for the next gate decision:** the honest measured ceiling ≈ the structure floor (~0.61), so the milestone bet (a *predicted*, region-resolved signature beats structure) is a steep hill. Phase 2 remains alive because the predicted-signature question is still untested — but the bracket says measured biology gives no drug-level lift over structure here. Surface this when deciding whether/how to proceed past the halt.
+### RESOLVED at the 2026-06-23 gate review (see D-08/D-09/D-10)
+- ~~**Power the gate (expand negatives).**~~ **RESOLVED → declined.** The 38-negative
+  underpower is an artifact of D-06's drug-level aggregation, not a data limit; it
+  vanishes at the paper's profile granularity. We power the gate by **replicating the
+  Wang/Li baseline symmetrically (complete the 2×2, add floor-leaky)** instead of expanding
+  negatives. DILIrank∪DILIst / relax Ambiguous / scaffold-level all declined (D-09).
+- ~~**Redefine Halt Gate 2 / milestone go-no-go.**~~ **RESOLVED → proceed regardless
+  (D-08/D-10).** The bracket is honest documentation; Phase 2 unblocks once the 2×2 is
+  written, regardless of the gap sign. The honest measured ceiling ≈ structure floor (~0.61)
+  raises the bar for Phase 2 but does not kill it — the *predicted, region-resolved*
+  signature is the real, untested bet that neither floor nor measured ceiling tests.
 
 </deferred>
 
