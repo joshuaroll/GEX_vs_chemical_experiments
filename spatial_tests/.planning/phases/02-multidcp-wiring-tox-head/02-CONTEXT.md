@@ -56,6 +56,15 @@ drug-perturbed spatial anchor is rodent). Human-first ordering per D-01/P1.
   checkpoint emits *absolute predicted treated expression* (so a control pass is
   meaningful). If the model emits a DE head natively, escalate before wiring — do
   not double-subtract.
+  **POST-RESEARCH AMENDMENT (2026-06-24):** research loaded the working checkpoint
+  and CONFIRMED it emits absolute predicted treated (not a DE head) — rule B is
+  valid, no double-subtract. BUT there is no vehicle/DMSO in the training vocab, so
+  `predicted_control` has no canonical input. **User decision: control = an
+  inert/empty-drug control pass** — a forward pass with a designated inert reference
+  (empty drug graph or a fixed DMSO-like SMILES) in the same region basal context.
+  Caveat: that reference was never in training, so its output is an extrapolation;
+  cache `predicted_control` (D-03) so the choice is auditable/re-derivable.
+  (Autoencoder basal-reconstruction and revert-to-rule-A were the alternatives.)
 
 ### Cache contents
 - **D-03:** Persist the **final DE plus the intermediate predicted_treated and
@@ -65,11 +74,33 @@ drug-perturbed spatial anchor is rodent). Human-first ordering per D-01/P1.
   organ. (Current `RegionSignatureCache` stores `de_array` only — extend it.)
 
 ### Frozen-backbone scope this phase
-- **D-04:** Wire **MultiDCP-PDG (condition S-B) end-to-end first** to de-risk the
-  seam, then add **MultiDCP-CheMoE (S-C) in the same phase once the PDG path
-  caches + smoke-trains cleanly.** Both checkpoints exist and are SHA-pinned in
-  MANIFEST (rows 17–18). If the PDG path is not clean, CheMoE slips to a later
-  phase without blocking WIRE-01/02/03.
+- **D-04 (AMENDED 2026-06-24 post-research):** Wire **MultiDCP-CheMoE (condition
+  S-C) end-to-end first** via `MultiDCP_CheMoE_AE` + the **row-17** checkpoint
+  `/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt` (SHA
+  `fbee15f…`) — research VERIFIED it as the only working, tissue-basal-capable
+  frozen backbone (0 missing keys, 10,716 basal, DE R²≈0.75). **S-B is DESCOPED
+  from Phase 2:** the MANIFEST row-18 "MultiDCP-PDG" checkpoint
+  (`chemoe_kpgt_MCF7_fold0/best_model.pt`) is actually a `CheMoE_PDG`/KPGT model,
+  is **collapsed** (constant output, corr≈0), needs KPGT 2304-d embeddings, and uses
+  a categorical 10-cell-line embedding incompatible with a tissue basal — DO NOT
+  WIRE. No working PDG/10,716-basal checkpoint exists on disk, so S-B is a
+  **checkpoint-provenance blocker** recorded for a later phase (source/re-derive a
+  non-collapsed `MultiDCP_AE` checkpoint). This reverses D-04's original ordering
+  but honors its intent ("de-risk the seam first" — S-B's checkpoint IS the risk).
+  WIRE-01/02/03 are satisfied by S-C alone.
+
+### Post-research implementation notes (2026-06-24; planner-level, no user decision)
+- **Basal normalization landmine:** the model's basal input must be **0-1 min-max
+  normalized** to the training manifold range (≈[0.018, 1.000], mean 0.62) before the
+  forward pass, or every cached feature is silently OOD-corrupted. Apply on the
+  spatial side after Visium→10,716 alignment.
+- **Dose is 2-dim, not 6-way** (contradicts CON-model-io's "6-way"): the working
+  checkpoint trained on a single dose. Use a fixed valid 2-dim one-hot; the cached
+  signature is effectively dose-agnostic (consistent with D-05 "don't gate on
+  magnitude").
+- **APAP control arm:** GSE280652 has **no matched control arm** → use GSE272564's
+  control as the primary gate reference (D-06/D-08); GSE280652 becomes a weaker
+  partial replication, not an independent matched-DE anchor.
 
 ### Dose conditioning for the GEX signature
 - **D-05:** Condition the cached per-region GEX signature on a **fixed canonical

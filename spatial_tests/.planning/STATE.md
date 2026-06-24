@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: **PHASE 1 COMPLETE (2026-06-23, 8/8 plans, verification 9/9). Halt Gate 2 fired as intended → reframed + documented; halt LIFTED per D-10. Phase 2 UNBLOCKED — next milestone step.**
-stopped_at: Executed + verified the 2×2-completion gap-closure (01-08). Completed the floor×ceiling × leaky×disjoint 2×2 (floor-leaky 0.999 ≥ ceiling-leaky 0.912 → "explains the paper"; floor-disjoint 0.546 vs ceiling-disjoint 0.605, gap +0.059 CI [0.026, 0.092]); appended the dated RESOLUTION un-halt note to HALT_REASON.md (D-10). Verifier PASSED 9/9; full suite 168 passed. Phase 1 marked complete; Phase 2 unblocked.
+status: **PHASE 2 PLANNED (2026-06-24) — 4 plans / 3 waves, plan-checker PASSED (0 blockers). Ready to execute. Phase 1 COMPLETE.**
+stopped_at: Discussed + researched + planned Phase 2 (MultiDCP wiring & tox head). Research VERIFIED the model I/O by loading checkpoints → two CONTEXT amendments: D-04 (wire CheMoE S-C row-17 only; S-B row-18 is a collapsed/incompatible KPGT ckpt → DESCOPED as provenance blocker) and D-02 (rule-B control = inert/empty-drug pass; model confirmed to emit absolute treated). 4 plans written (02-01 Wave-0 tests RED; 02-02 WIRE-01 seam+cache; 02-03 WIRE-02 tox_head+smoke-train; 02-04 WIRE-03 APAP gate), plan-checker PASSED with 3 non-blocking warnings (W3 false-pass boolean + W1 research-label fixed inline).
 last_updated: "2026-06-24T00:30:00.000Z"
 last_activity: 2026-06-24
 progress:
@@ -38,7 +38,7 @@ Plan: 8 of 8 executed (01-08 2×2-completion gap-closure DONE — the un-halt pl
 
 **Halt Gate 2 result (as designed — fired, then documented/reframed, NOT a blocker anymore):** PRIMARY drug-level gate: structure floor 0.611, leakage-free drug-grouped measured ceiling 0.434, gap −0.177, 95% CI [−0.316, −0.033] → FIRES (still fires by design; driver still exits 1). **Completed-2×2 headline:** floor-leaky (0.999) ≥ ceiling-leaky (0.912) → the Wang/Li ~0.798 benchmark is largely **drug-identity memorization that chemical structure reproduces** ("explains the paper"); at the honest drug-disjoint level the measured ceiling shows a small real lift over structure (+0.059, CI [0.026, 0.092]) but does not clear the drug-level gate. See `results/tables/P1_eda.md` + `01-VERIFICATION.md`.
 
-**Next action:** **Phase 1 COMPLETE — start Phase 2.** `/gsd-discuss-phase 2` (recommended) → `/gsd-plan-phase 2` → `/gsd-execute-phase 2`. Phase 2 = MultiDCP wiring & toxicity head (frozen baseline forward path to an organ-tox logit; APAP anchor; carries HALT GATE 3). The reframe raises the bar: measured DE gives no clear honest lift over structure, so the live bet is the **predicted, region-resolved** signature, which neither the floor nor the measured ceiling tests. Honor D-07 (drug-disjoint/group-aware CV recommended for all Phase 2+ AUROC comparisons).
+**Next action:** **Phase 2 PLANNED — execute it.** `/gsd-execute-phase 2` (after `/clear`). 4 plans in 3 waves: W0 02-01 (Nyquist test scaffolds, RED) → W1 02-02 (WIRE-01: fill region_signature seam against MultiDCP_CheMoE_AE row-17, rule-B inert-control DE, 3-vector cache, N_PDG=10716, liver cache human+mouse) ∥ 02-03 (WIRE-02: tox_head concat-MLP + condition-A smoke-train) → W2 02-04 (WIRE-03: APAP per-zone Pearson on GSE272564, HALT GATE 3 pericentral<0.3 → stop-and-reframe). S-B descoped (row-18 ckpt collapsed/incompatible). Honor D-07 (drug-disjoint CV) in P4+. Plan artifacts: 02-CONTEXT (D-01..D-09 + amendments), 02-RESEARCH, 02-PATTERNS, 02-VALIDATION.
 
 ## Performance Metrics
 
@@ -158,6 +158,6 @@ Plan: 8 of 8 executed (01-08 2×2-completion gap-closure DONE — the un-halt pl
 
 ## Session Continuity
 
-- **Last activity:** 2026-06-23
-- **Stopped at:** **Next gate review COMPLETE** (2026-06-23). Captured D-08 (power the gate first, then proceed to Phase 2 regardless of sign), D-09 (replicate Wang/Li symmetrically — add `floor-leaky` to complete the floor×ceiling × leaky×disjoint 2×2; no negative-set expansion), D-10 (the bracket is documentation; Phase 2 unblocks once the 2×2 is written). `01-CONTEXT.md` + `01-DISCUSSION-LOG.md` updated; two deferred flags now RESOLVED.
-- **Resume with:** `/gsd-plan-phase 1` — plan the **2×2-completion gap-closure** (per D-09): add `floor_profile_leaky_auroc` (LR on ECFP4, random `StratifiedKFold` profile split, seed=42), fill the floor-leaky cell in `P1_eda.md`, add a paired-bootstrap CI on the profile-level drug-disjoint gap. Then `/gsd-execute-phase 1` — on completion the halt LIFTS and Phase 2 unblocks (D-10). Artifacts: decisions `01-CONTEXT.md` D-08/D-09/D-10 (+ D-06/D-07); report `results/tables/P1_eda.md`; halt record `HALT_REASON.md`; log `01-DISCUSSION-LOG.md`.
+- **Last activity:** 2026-06-24
+- **Stopped at:** **Phase 2 PLANNED + checker-PASSED** (2026-06-24). Discuss→research→plan complete; two post-research CONTEXT amendments (D-04 S-B descope, D-02 inert-control). 4 plans (02-01..02-04) committed; plan-checker PASSED (0 blockers, 3 warnings, W1+W3 fixed inline).
+- **Resume with:** `/gsd-execute-phase 2` (after `/clear`). Wave-based: W0 tests (RED) → W1 WIRE-01 (02-02) ∥ WIRE-02 (02-03) → W2 WIRE-03 (02-04, HALT GATE 3). Artifacts: `02-CONTEXT.md` (D-01..D-09 + amendments), `02-RESEARCH.md`, `02-PATTERNS.md`, `02-VALIDATION.md`. Watch items for execution: 0-1 basal min-max normalization, CUDA hygiene (--gpu before import torch), N_LANDMARK 978→10716 generalization, real inference is @pytest.mark.gpu (never mocked).
