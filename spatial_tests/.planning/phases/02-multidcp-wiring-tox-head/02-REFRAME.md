@@ -31,6 +31,20 @@ The epsilon-level per-zone difference has two distinct causes that demand differ
 **If encoder-flat, out-of-scope under current rules (requires revisiting `DEC-frozen-baseline`, professor sign-off):**
 - F2: fine-tune ONLY the cell-context encoder on tissue basals while freezing the rest. Blocked by the lack of healthy-tissue drug-perturbed targets (no panel-wide healthy spatial perturbation data exists) — feasibility is doubtful; flag honestly.
 
+## Diagnostic result (2026-06-24) — VERDICT: ENCODER-FLAT (inert basal branch)
+
+Ran the D1/D2/D3 diagnostic (`results/tables/P2_encoder_diagnostic.md`, `scripts/diagnose_encoder_zonal.py`, commit b00ef98). Result:
+- **D1 (inputs differ):** periportal vs pericentral normalized basals Pearson 0.333 (human) / 0.867 (mouse), L2 30.4 / 13.6, ~9,000+/10,716 genes differ; zonation markers show correct zonal contrast raw AND post-normalization. **Basal pipeline is fine — NOT input-flat.**
+- **D3 (markers survived):** 7/8 human, 8/8 mouse markers present + covered (not zero-filled). The lone gap (human CYP2F2) is a real mouse-specific gene; mouse Cyp2f2 → human CYP2F1. **Not a marker-dropout problem.**
+- **D2 (encoder dead):** inputs from Pearson +0.33 down to −0.9999 change the output by ≤ 5.96e-08 and the 50-d cell-context by 2.98e-08 (finite-diff ratio 9.5e-09). At fixed basal, the DRUG branch moves the output 0.08–0.13. **The row-17 checkpoint reads (drug, dose) and ignores the basal entirely.**
+
+**Implications:**
+- F1 (basal-pipeline fix) is RULED OUT — no input change moves a model constant in its input.
+- This is not just a spatial-arm problem: conditions B/C/S-B/S-C (all cell/tissue-conditioned predicted GEX) collapse to drug+dose with this checkpoint.
+- **OPEN AMBIGUITY to resolve FIRST (order-of-magnitude cost difference):** is the basal branch inert in the checkpoint *weights*, or is our `_call_model` wiring not feeding the basal into `input_cell_gex` correctly? The diagnostic tested OUR wired forward. CHECK: run the upstream MultiDCP repo's OWN inference on two different basals (bypass our wiring) and/or inspect the context-encoder weights for near-zero. If wiring bug → trivial in-scope fix, milestone salvaged. If weights inert → see below.
+- If genuinely inert weights: **F3** (condition the region feature on a delta/contrast basal computed OUTSIDE the model, e.g. `zone_basal − tissue_mean`) makes zonal contrast explicit with no weights changed — but it is NOT a *predicted* region response (it injects the observed basal contrast downstream), so it changes the scientific claim; report honestly. **F4** (source a non-collapsed checkpoint whose context encoder actually uses `input_cell_gex`) is the only path to a genuine predicted region-resolved signal under the frozen rule — provenance hunt (note both available checkpoints are non-functional: row-17 inert, row-18 collapsed). **F2** (fine-tune) remains blocked (frozen-baseline + no healthy-tissue perturbation targets).
+- This materially strengthens the instrumented-negative framing (concept 4): the available frozen MultiDCP/CheMoE checkpoints do not condition predicted expression on cell/tissue context.
+
 ## State
 - Phase 3 remains BLOCKED until the diagnostic + chosen fix re-clear (or re-fire) Halt Gate 3.
 - All Phase-2 engineering deliverables (forward path, 3-vector cache, tox_head, smoke-train) are intact and reusable — the fix targets the basal→context path, not the wiring.
