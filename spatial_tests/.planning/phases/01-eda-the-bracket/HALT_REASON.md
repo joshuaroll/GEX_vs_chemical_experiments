@@ -20,3 +20,33 @@ The drug-aggregated, leakage-free measured ceiling does not exceed the structure
 
 **Bootstrap resamples (valid):** 10,000 / 10,000
 **Logged:** run_p1_eda.py
+
+---
+
+## RESOLUTION (2026-06-23) -- 2x2 documentation complete; Phase 2 unblocked (D-10)
+
+The floor x ceiling, leaky x disjoint 2x2 is now complete in
+`results/tables/P1_eda.md`. The previously missing **floor-leaky** cell was added
+(`floor_profile_leaky_auroc`: LR on ECFP4, random `StratifiedKFold` profile split,
+NO drug groups, seed=42 -- mirroring the ceiling's `_leakage_decomposition` leaky
+path), and a 95% paired-bootstrap CI (10,000 resamples, seed=42) was added on the
+profile-level drug-disjoint gap from aligned floor/ceiling OOF vectors over the SAME
+kept profile rows and SAME StratifiedGroupKFold drug folds.
+
+Per **D-08 / D-10**, the halt LIFTS by COMPLETING the honest bracket documentation
+(the 2x2), regardless of the gap sign. **Phase 2 (Halt Gate 3) is now UNBLOCKED.**
+The predicted, region-resolved signature is the real untested bet; a measured null
+just raises the bar for it.
+
+The un-halt is a project decision (D-10), **not a gate change**: the PRIMARY
+drug-level Halt Gate 2 STILL FIRES (gap -0.1770 AUROC, 95% CI [-0.3161, -0.0326],
+`gate_fires: True`) and the driver STILL exits 1. The original halt analysis above
+stands verbatim as the record of why the drug-level gate fired; nothing in it
+(the gap/CI numbers, `gate_fires:** True`, or the Decision per D-02 block) is altered.
+
+**Diagnostic reading (the cell that "explains the paper"):** floor-leaky is high
+(profile-level, on the kept set), confirming that the Wang/Li-style headline (~0.798)
+is largely drug-identity memorization that chemical structure reproduces in its own
+favorable (leaky) setup -- measured biology adds little there. At the fair
+drug-disjoint level the gap is small (+0.059, profile-level) and the drug-aggregated
+gate is negative and underpowered. See `results/tables/P1_eda.md` for all four cells.

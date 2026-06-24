@@ -1,6 +1,6 @@
 # Phase 1 EDA Report: The Bracket (liver/human)
 
-**Generated:** 2026-06-24T00:41:04Z
+**Generated:** 2026-06-24T03:31:12Z
 **Sub-command:** all
 
 ## EDA-01: Structure-Only Floor (DILIrank, liver/human)
@@ -99,6 +99,25 @@ This **profile-level drug-disjoint** comparison is the **supporting, better-powe
 
 (For reference, the leaky profile-level ceiling is 0.9120; see the EDA-02 leakage decomposition.)
 
+### Completed 2x2: floor x ceiling, leaky x disjoint (D-09)
+
+|          | Leaky (paper's random-profile split) | Drug-disjoint (honest) |
+|----------|--------------------------------------|------------------------|
+| Ceiling  | 0.9120    | 0.6052 |
+| Floor    | 0.9989      | 0.5461   |
+
+All four cells sit on the SAME kept profile set (2648 profiles, 227 drugs) for consistency. **Diagnostic reading:** if floor-leaky (0.999) is approximately ceiling-leaky (0.912, ~0.912), then the Wang/Li headline (~0.798) is largely drug-identity memorization that chemical structure reproduces on its own -- measured biology adds little even in its own favorable (leaky) setup. This is the cell that "explains the paper" (D-09): the leaky column is the diagnostic, the drug-disjoint column is the fair verdict.
+
+### Profile-level drug-disjoint gap -- 95% paired-bootstrap CI (D-09)
+
+| Profile-level drug-disjoint gap (ceiling - floor) | Value |
+|--------|-------|
+| Gap (point) | +0.0590 |
+| 95% CI [lo, hi] | [0.0259, 0.0921] |
+| Bootstrap resamples (valid) | 10,000 / 10,000 |
+
+Both OOF vectors come from the SAME kept profile rows (2648 profiles, 227 drugs) and the SAME StratifiedGroupKFold drug folds (seed=42), so this is a paired, leakage-free estimate of the +0.059 profile-disjoint gap. This is documentation for honesty, not a new hard gate; the PRIMARY drug-level Halt Gate 2 above is unchanged.
+
 ### Leakage-discipline guidance (D-07)
 
 Drug-disjoint (group-aware) cross-validation is the **recommended** evaluation for every ceiling/floor/AUROC comparison across this milestone, including Phase 2+ predicted-signature evals. Enforcement is per-phase planner guidance, not a project hard rule. The +0.31 AUROC benchmark drug-leakage finding (profile-level 0.912 leaky vs 0.605 drug-disjoint) stays documented in this report (see the EDA-02 Leakage decomposition section).
@@ -156,4 +175,4 @@ Drug-disjoint (group-aware) cross-validation is the **recommended** evaluation f
 
 
 ---
-*Run elapsed: 248.4s*
+*Run elapsed: 331.5s*
