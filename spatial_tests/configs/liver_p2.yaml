@@ -1,0 +1,52 @@
+# Phase 2 liver config (WIRE-01): frozen MultiDCP-CheMoE per-region DE caching.
+#
+# Source of truth for the cache driver (scripts/cache_region_de.py). Pins the
+# row-17 checkpoint + gene-order SHAs (T-02-03 integrity), the fixed 2-dim dose
+# one-hot (D-05/Pitfall 4), the 0-1 manifold basal normalization (Pitfall 1),
+# and the rule-B inert control definition (D-02 amendment).
+#
+# D-04 amendment: ONLY S-C (MultiDCP-CheMoE, row-17) is wired. The row-18
+# chemoe_kpgt checkpoint is collapsed/incompatible (S-B descoped) and is NOT
+# referenced here.
+
+model_variant: multidcp_chemoe
+
+# Frozen backbone (MANIFEST row-17, D-04 amended).
+checkpoint_path: /raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt
+checkpoint_sha256: fbee15faade904cacd6484832cea211ebd4b28186ca40def40af3fea27c7d2a0
+
+# 10,716-symbol PDG gene order (N_PDG, D-01) — the cache column order.
+gene_order_file: data/processed/spatial/multidcp_10716_symbols.txt
+gene_order_sha256: 595ef7cb1bf6577f478fd0f3cb75a9cf28c4471a7b0272f7830e90c09f0d7188
+n_pdg: 10716
+
+# Fixed 2-dim dose one-hot (Pitfall 4): the working checkpoint trained on a
+# single dose; the cached signature is dose-agnostic (D-05, do not gate on
+# magnitude).
+dose_one_hot: [1.0, 0.0]
+
+# Basal normalization (Pitfall 1, the silent-OOD-corruption guard): each region
+# basal is aligned to the gene order then 0-1 min-max scaled into the model's
+# training manifold range BEFORE the forward pass.
+basal_normalization:
+  method: minmax_0_1
+  manifold_range: [0.018, 1.000]   # verified manifold range, mean ~0.62
+
+# Rule-B control input (D-02 amendment): no vehicle/DMSO in the training vocab,
+# so predicted_control is a forward pass with a designated inert reference SMILES
+# ("C", methane — minimal valid NeuralFingerprint graph) in the same region
+# basal context. The control vector is cached (D-03) so the choice is auditable.
+control_input: inert_empty_drug
+inert_control_smiles: "C"
+
+# Cache output (3-vector: de/treated/control, D-03), per species.
+cache_dir: data/processed/spatial/region_de_cache
+
+organ: liver
+species: [human, mouse]   # human = P4 headline; mouse = WIRE-03 APAP gate
+
+# Liver zonation (D-07): published annotation if present, else canonical markers.
+zones: [periportal, pericentral]
+zone_markers:
+  pericentral: [GLUL, CYP2E1]
+  periportal: [SDS, CYP2F2]

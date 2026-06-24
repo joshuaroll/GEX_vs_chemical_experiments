@@ -44,8 +44,8 @@ Model-inference path
 checkpoint ``/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt``
 (0 missing / 0 unexpected keys); ``_call_model`` runs one real forward and
 returns absolute predicted treated expression over 10,716 genes. The row-18
-``chemoe_kpgt_…`` checkpoint is collapsed/incompatible and is NOT wired (D-04
-amendment / S-B descope).
+KPGT checkpoint is collapsed/incompatible and is NOT wired (D-04 amendment /
+S-B descope).
 
 Hard rules honored
 -------------------
@@ -513,41 +513,52 @@ def assemble_cache(
 class RegionSignatureCacher:
     """Interface that produces per-region predicted DE by calling a frozen model.
 
-    Usage pattern (once checkpoint paths are confirmed)
-    ---------------------------------------------------
+    Usage pattern
+    -------------
     ::
 
         cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
-            gene_ids=landmark_gene_ids,   # tuple of 978 HGNC symbols / ENTREZ IDs
+            model_variant="multidcp_chemoe",
+            gene_ids=symbols_10716,   # tuple of 10,716 HGNC symbols (N_PDG, D-01)
+            device="cuda:0",          # caller sets CUDA_VISIBLE_DEVICES first
         )
-        cacher.load_model(checkpoint_path)   # raises NotImplementedError until
-                                              # MANIFEST.md Phase 3 rows are filled
+        cacher.load_model(checkpoint_path)   # strict-loads row-17 best_model.pt
         cache = cacher.run(
             pert_ids=["drug_A", "drug_B"],
             smiles_map={"drug_A": "CCO", "drug_B": "c1ccccc1"},
-            region_basal_map={"periportal": np.array([...]), "pericentral": np.array([...])},
+            region_basal_map={"periportal": np.array([...]),   # 0-1 normalized
+                              "pericentral": np.array([...])},
         )
 
     The PURE parts (``compute_de``, ``build_manifest``, ``make_cache_key``,
-    ``assemble_cache``) are available as module-level functions and are tested
-    independently of the model stub.
+    ``assemble_cache``) are module-level functions, tested independently of the
+    model. The IMPURE parts (``load_model``, ``_featurize_drug``,
+    ``_call_model``) keep torch + the cross-project ``sys.path`` injection inside
+    the methods so the pure functions stay import-clean.
 
     Parameters
     ----------
     model_variant : str
-        One of ``"multidcp_pdg"`` or ``"multidcp_chemoe"``. Determines both
-        which checkpoint will be loaded and which namespace is used in cache keys.
+        One of ``"multidcp_pdg"`` or ``"multidcp_chemoe"``. Determines both the
+        checkpoint loaded and the cache-key namespace. The wired backbone this
+        phase is ``"multidcp_chemoe"`` (D-04 amendment; ``"multidcp_pdg"`` /
+        S-B is descoped — its row-18 checkpoint is collapsed/incompatible).
     gene_ids : tuple[str, ...]
-        Ordered gene identifiers for the model's output space. Must have
-        ``len(gene_ids) == N_LANDMARK`` (978) for the landmark-space models.
-        Caller is responsible for aligning this with the Visium basal vectors.
+        Ordered gene identifiers for the model's output space. For the spatial
+        arm this is the 10,716-symbol PDG order (N_PDG, D-01). Legacy 978-landmark
+        callers are still accepted. The caller aligns the Visium basal to this
+        order before passing it (and 0-1 normalizes it; Pitfall 1).
+    device : str
+        Torch device string (e.g. ``"cpu"`` or ``"cuda:0"``). The driver sets
+        ``CUDA_VISIBLE_DEVICES`` BEFORE importing torch (Hard Rule 5), so
+        ``"cuda:0"`` here resolves to the chosen visible GPU. Default ``"cpu"``.
     """
 
     def __init__(
         self,
         model_variant: str,
         gene_ids: tuple[str, ...],
+        device: str = "cpu",
     ) -> None:
         _VALID_VARIANTS: frozenset[str] = frozenset(
             {"multidcp_pdg", "multidcp_chemoe"}
@@ -559,61 +570,162 @@ class RegionSignatureCacher:
             )
         self.model_variant = model_variant
         self.gene_ids = tuple(gene_ids)
+        self.device = device
         self._model: Optional[object] = None
+        # Cross-project featurizer + gene tensor, lazily bound in load_model
+        # (kept off the module top so the pure functions stay torch-free).
+        self._convert_smile_to_feature = None
+        self._create_mask_feature = None
+        self._gene_tensor = None
+        self._torch = None
 
     # ------------------------------------------------------------------
-    # Model loading (STUB — raises NotImplementedError)
+    # Model loading (IMPURE — real strict-load of the row-17 CheMoE backbone)
     # ------------------------------------------------------------------
 
-    def load_model(self, checkpoint_path: str) -> None:
-        """Load a frozen MultiDCP/CheMoE checkpoint from disk.
+    # D-04 amendment (row-17, SHA fbee15f…): the only working, tissue-basal-
+    # capable frozen backbone. The row-18 KPGT checkpoint is
+    # collapsed/incompatible and is NOT wired (S-B descoped).
+    _MDCP_SRC = "/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src"
+    _CHECKPOINT_SHA256 = (
+        "fbee15faade904cacd6484832cea211ebd4b28186ca40def40af3fea27c7d2a0"
+    )
 
-        TODO: NOT IMPLEMENTED. Checkpoint paths are unconfirmed in MANIFEST.md
-        (Phase 3 rows currently show placeholder strings "Phase 3", not real
-        file paths). Before implementing:
+    def load_model(self, checkpoint_path: str, verify_sha: bool = True) -> None:
+        """Strict-load the frozen MultiDCP-CheMoE backbone (row-17 checkpoint).
 
-          1. Complete Phase 3 upstream training runs and fill in the
-             MANIFEST.md "Trained checkpoints" table with real paths in the
-             form:
-             ``/raid/home/joshua/projects/GEX_vs_chemical_experiments/
-               dili_downstream/trained_models/{condition}_seed{seed}/best.pt``
-          2. Resolve 09_spatial_decisions.md open item #3 (DE-rule divergence
-             approval for spatial arm ``treated - region_basal`` vs main v0.4
-             ``treated - diseased``).
-          3. Resolve 09_spatial_decisions.md open item #1 (confirm a negative
-             spatial result is scientifically acceptable, sets whether the
-             spatial Halt Gate is stop-and-reframe or stop-and-abandon).
-          4. Implement the actual ``torch.load`` / ``model.eval()`` /
-             ``model.requires_grad_(False)`` sequence using the correct class
-             from ``src/models/upstream/multidcp_pdg.py`` (Condition B/E) or
-             ``src/models/upstream/multidcp_pdgrapher_fusion.py`` (Condition C/F),
-             both SHA-pinned at 871b8de0332045a3ad5ab3a39e689014317dadfe.
+        Replaces the former NotImplementedError seam with the VERIFIED strict
+        load of ``MultiDCP_CheMoE_AE`` (alias ``MultiDCP_CheMoEBase``) from
+        ``/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt``
+        (0 missing / 0 unexpected keys). torch + the cross-project ``sys.path``
+        injection are confined to this method (and ``_featurize_drug`` /
+        ``_call_model``) so the pure functions stay torch-free.
+
+        Security (T-02-03): the kpgt-vs-CheMoE mixup is the integrity risk. The
+        checkpoint path is asserted to exist and (when ``verify_sha``) its SHA256
+        is asserted against the MANIFEST row-17 pin ``fbee15f…``; the strict load
+        must be 0/0 or this raises — there is NO silent fallback.
 
         Parameters
         ----------
         checkpoint_path : str
-            Absolute path to the ``.pt`` checkpoint file. Must exist and be
-            readable; the GPU used is governed by the ``--gpu`` argparse flag
-            (set BEFORE ``import torch``; always leave one GPU free on the
-            shared box per HARD RULE 5).
+            Absolute path to the row-17 ``best_model.pt``. Must exist.
+        verify_sha : bool
+            If True (default), assert the file's SHA256 matches the row-17 pin.
 
         Raises
         ------
-        NotImplementedError
-            Always, until the checkpoint paths are confirmed in MANIFEST.md
-            and the above open items in 09_spatial_decisions.md are resolved.
+        FileNotFoundError
+            If ``checkpoint_path`` does not exist.
+        ValueError
+            If the SHA256 does not match the pinned row-17 value.
+        RuntimeError
+            If ``load_state_dict(strict=True)`` finds any missing/unexpected key.
         """
-        raise NotImplementedError(
-            "RegionSignatureCacher.load_model: checkpoint loading is not "
-            "implemented. Checkpoint paths for the frozen MultiDCP/CheMoE "
-            "models are unconfirmed in MANIFEST.md (Phase 3 rows are "
-            "placeholders). See also 09_spatial_decisions.md open items #1 "
-            "and #3 (DE-rule divergence approval, spatial Halt Gate go/no-go). "
-            "Implement this method once Phase 3 upstream training is complete."
+        import hashlib as _hashlib
+        import os
+        import sys
+
+        import torch
+
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(
+                f"load_model: checkpoint not found: {checkpoint_path}. Use the "
+                f"D-04 row-17 path "
+                f"/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model.pt"
+            )
+
+        if verify_sha:
+            h = _hashlib.sha256()
+            with open(checkpoint_path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(chunk)
+            digest = h.hexdigest()
+            if digest != self._CHECKPOINT_SHA256:
+                raise ValueError(
+                    f"load_model: checkpoint SHA256 mismatch (T-02-03 integrity "
+                    f"guard). Expected row-17 {self._CHECKPOINT_SHA256}, got "
+                    f"{digest}. Refusing to load — this may be the collapsed "
+                    f"row-18 KPGT checkpoint (S-B, NOT wired)."
+                )
+
+        # Cross-project import (read-only static dependency); inside the method
+        # so the pure functions stay import-clean (Cross-project import landmine).
+        sys.path.insert(0, os.path.join(self._MDCP_SRC, "models"))
+        sys.path.insert(0, os.path.join(self._MDCP_SRC, "utils"))
+        from multidcp_ae_pdg_utils import initialize_model_registry  # noqa: E402
+        import multidcp_chemoe_pdg as mc  # noqa: E402
+        from data_utils_pdg import (  # noqa: E402
+            convert_smile_to_feature,
+            create_mask_feature,
+        )
+
+        device = torch.device(self.device)
+        reg = initialize_model_registry()
+        reg.update(
+            {
+                "num_gene": N_PDG,
+                "pert_idose_input_dim": 2,  # VERIFIED dose_encoder (64, 2)
+                "dropout": 0.3,
+                "linear_encoder_flag": False,  # checkpoint has the transformer cell encoder
+            }
+        )
+        model = mc.MultiDCP_CheMoE_AE(device=device, model_param_registry=reg)
+        # Move params to device BEFORE .double() (mirrors the upstream training
+        # script; the NeuralFingerprint sub-params otherwise stay on CPU and the
+        # forward errors on a cpu/cuda device mismatch).
+        model.to(device)
+        model = model.double()
+
+        state = torch.load(
+            checkpoint_path, map_location=device, weights_only=False
+        )
+        # strict=True: in this torch version load_state_dict raises on any
+        # missing/unexpected key, so reaching the next line == 0/0 (no fallback).
+        model.load_state_dict(state, strict=True)
+        model.eval()
+        for p in model.parameters():
+            p.requires_grad_(False)
+
+        self._torch = torch
+        self._model = model
+        self._convert_smile_to_feature = convert_smile_to_feature
+        self._create_mask_feature = create_mask_feature
+        # input_gene is unused by the CheMoE architecture (gene features are
+        # learned per-gene embeddings inside the model); a placeholder index
+        # tensor satisfies the positional forward signature.
+        self._gene_tensor = torch.arange(N_PDG, device=device)
+        log.info(
+            "load_model: strict-loaded MultiDCP_CheMoE_AE from %s "
+            "(0 missing / 0 unexpected) on %s.",
+            checkpoint_path,
+            device,
         )
 
     # ------------------------------------------------------------------
-    # Model inference (STUB — raises NotImplementedError)
+    # Drug featurization (IMPURE — repo NeuralFingerprint graph, do not hand-roll)
+    # ------------------------------------------------------------------
+
+    def _featurize_drug(self, smiles: str):
+        """Build the ``input_drug`` dict + attention ``mask`` for one SMILES.
+
+        Uses the repo's ``convert_smile_to_feature`` / ``create_mask_feature``
+        (atom=62 / bond=6) so the graph matches the frozen NeuralFingerprint
+        exactly — any hand-rolled featurizer would silently produce the wrong
+        drug embedding. Returns ``(input_drug, mask)`` on ``self.device`` as
+        float64 (the model is ``.double()``).
+        """
+        if self._model is None or self._convert_smile_to_feature is None:
+            raise RuntimeError(
+                "_featurize_drug: model not loaded. Call load_model() first."
+            )
+        device = self._torch.device(self.device)
+        drug = self._convert_smile_to_feature([smiles], device)
+        mask = self._create_mask_feature(drug, device)
+        return drug, mask
+
+    # ------------------------------------------------------------------
+    # Model inference (IMPURE — one real forward, absolute treated [N_PDG])
     # ------------------------------------------------------------------
 
     def _call_model(
@@ -621,50 +733,62 @@ class RegionSignatureCacher:
         smiles: str,
         region_basal: np.ndarray,
     ) -> np.ndarray:
-        """Call the frozen model for one (drug, region) pair.
+        """Run one frozen forward for (drug, region) → absolute treated GEX.
 
-        TODO: NOT IMPLEMENTED. See ``load_model`` docstring for the full
-        dependency chain. This method must:
-
-          1. Convert ``smiles`` to the model's drug-feature representation
-             (NeuralFingerprint graph encoding for MultiDCP-PDG; CheMoE
-             drug encoder for CheMoE variant).
-          2. Supply ``region_basal`` (shape ``(n_genes,)``) as the cell-context
-             vector (analogous to a cell-line basal profile). The basal vector
-             must be subset to the model's gene space before passing here.
-          3. Run a forward pass with ``torch.no_grad()`` and ``model.eval()``.
-          4. Return the raw predicted treated GEX (shape ``(n_genes,)``) as
-             a CPU float32 numpy array. Do NOT subtract the basal here —
-             subtraction happens in ``compute_de`` so that step is separately
-             testable.
+        Returns the model's RAW predicted treated expression (rule-B subtraction
+        — treated minus the predicted control — happens later in ``compute_de``;
+        do NOT subtract anything here). The caller passes an ALREADY 0-1
+        manifold-normalized ``region_basal`` (Pitfall 1) aligned to the model's
+        gene order; this method only casts to float64, adds the batch dim, and
+        applies the fixed 2-dim dose one-hot (Pitfall 4).
 
         Parameters
         ----------
         smiles : str
-            SMILES string for the drug/compound.
+            SMILES string for the drug/compound (or ``INERT_CONTROL_SMILES`` for
+            the rule-B control pass).
         region_basal : np.ndarray
-            Shape ``(n_genes,)`` float32. Region pseudobulk basal expression
-            in the model's gene space.
+            Shape ``(N_PDG,)`` float, already aligned + 0-1 normalized.
 
         Returns
         -------
         np.ndarray
-            Shape ``(n_genes,)`` float32. Raw predicted treated GEX.
+            Shape ``(N_PDG,)`` float32. Absolute predicted treated GEX.
 
         Raises
         ------
-        NotImplementedError
-            Always, until the checkpoint is loaded and the model inference
-            pipeline is implemented.
+        RuntimeError
+            If the model has not been loaded via ``load_model``.
         """
-        raise NotImplementedError(
-            "RegionSignatureCacher._call_model: model inference is not "
-            "implemented. Load a checkpoint with load_model() first, and see "
-            "09_spatial_decisions.md open items #1 and #3."
-        )
+        if self._model is None:
+            raise RuntimeError(
+                "_call_model: model not loaded. Call load_model() first."
+            )
+        torch = self._torch
+        device = torch.device(self.device)
+
+        drug, mask = self._featurize_drug(smiles)
+        basal = torch.as_tensor(
+            region_basal, dtype=torch.float64, device=device
+        ).unsqueeze(0)  # [1, N_PDG]
+        dose = torch.tensor(
+            [[1.0, 0.0]], dtype=torch.float64, device=device
+        )  # fixed 2-dim one-hot (Pitfall 4, D-05 dose-agnostic)
+
+        with torch.no_grad():
+            pred, _cell_hidden = self._model(
+                input_cell_gex=basal,
+                input_drug=drug,
+                input_gene=self._gene_tensor,
+                mask=mask,
+                input_pert_idose=dose,
+                job_id="perturbed",
+                epoch=0,
+            )
+        return pred.squeeze(0).float().cpu().numpy()  # [N_PDG] absolute treated
 
     # ------------------------------------------------------------------
-    # Full caching run (delegates to stubs; pure parts are testable)
+    # Full caching run (real frozen forward; rule-B control pass per region)
     # ------------------------------------------------------------------
 
     def run(
@@ -673,16 +797,15 @@ class RegionSignatureCacher:
         smiles_map: dict[str, str],
         region_basal_map: dict[str, np.ndarray],
     ) -> RegionSignatureCache:
-        """Produce predicted DE for all pert_ids × all regions.
+        """Produce the 3-vector rule-B cache for all pert_ids × all regions.
 
-        Calls ``_call_model`` for every ``(pert_id, region)`` combination,
-        then delegates to ``assemble_cache`` for the pure DE-subtraction and
-        array-stacking step.
-
-        Because ``_call_model`` raises ``NotImplementedError``, this method
-        also raises until the checkpoint is loaded. The pure post-processing
-        (DE subtraction, manifest construction, array assembly) can be tested
-        independently via ``assemble_cache``.
+        For each region, the inert-drug control pass (``INERT_CONTROL_SMILES``,
+        D-02) is computed ONCE and reused for every drug in that region (control
+        is region-determined, not drug-determined; the +1 forward per region is
+        cheap). For each (drug, region), the treated forward is computed. Both
+        maps are then handed to the pure ``assemble_cache`` which builds
+        ``de_array = treated - control`` plus the cached treated/control vectors
+        (D-03).
 
         Parameters
         ----------
@@ -691,22 +814,30 @@ class RegionSignatureCacher:
         smiles_map : dict[str, str]
             ``{pert_id: smiles}`` for every pert_id in ``pert_ids``.
         region_basal_map : dict[str, np.ndarray]
-            ``{region_label: basal_array}`` for each region. Arrays must be
-            shape ``(n_genes,)`` with ``n_genes == len(self.gene_ids)``.
+            ``{region_label: basal_array}`` for each region. Arrays must be shape
+            ``(n_genes,)`` with ``n_genes == len(self.gene_ids)``, already
+            aligned to the model's gene order and 0-1 manifold-normalized
+            (Pitfall 1) by the caller.
 
         Returns
         -------
         RegionSignatureCache
-            Fully aligned DE array plus manifest. Axes:
+            The 3-vector cache (de/treated/control) plus manifest. Axes:
             ``(n_pert_ids, n_regions, n_genes)`` float32.
 
         Raises
         ------
-        NotImplementedError
-            Propagated from ``_call_model`` (see ``load_model`` docstring).
+        RuntimeError
+            If the model has not been loaded via ``load_model``.
         KeyError
             If ``smiles_map`` is missing a pert_id from ``pert_ids``.
         """
+        if self._model is None:
+            raise RuntimeError(
+                "RegionSignatureCacher.run: model not loaded. Call "
+                "load_model(checkpoint_path) before run()."
+            )
+
         regions = sorted(region_basal_map.keys())  # deterministic region order
         manifest = build_manifest(
             pert_ids=pert_ids,
@@ -715,7 +846,17 @@ class RegionSignatureCacher:
             model_variant=self.model_variant,
         )
 
+        # Rule-B control pass per region (once): inert/empty-drug reference in the
+        # same region basal context (D-02 amendment).
+        region_control_map: dict[str, np.ndarray] = {}
+        for region in regions:
+            basal = region_basal_map[region]
+            region_control_map[region] = self._call_model(
+                INERT_CONTROL_SMILES, basal
+            )
+
         predicted_treated_map: dict[tuple[str, str], np.ndarray] = {}
+        predicted_control_map: dict[tuple[str, str], np.ndarray] = {}
         for pert_id in pert_ids:
             if pert_id not in smiles_map:
                 raise KeyError(
@@ -725,12 +866,17 @@ class RegionSignatureCacher:
             smiles = smiles_map[pert_id]
             for region in regions:
                 basal = region_basal_map[region]
-                # This raises NotImplementedError until load_model() is done.
-                predicted = self._call_model(smiles, basal)
-                predicted_treated_map[(pert_id, region)] = predicted
+                predicted_treated_map[(pert_id, region)] = self._call_model(
+                    smiles, basal
+                )
+                # Region-determined control, replicated per (pert_id, region)
+                # so the cache aligns position-for-position (D-03).
+                predicted_control_map[(pert_id, region)] = region_control_map[
+                    region
+                ]
 
         return assemble_cache(
             predicted_treated_map=predicted_treated_map,
-            region_basal_map=region_basal_map,
+            predicted_control_map=predicted_control_map,
             manifest=manifest,
         )

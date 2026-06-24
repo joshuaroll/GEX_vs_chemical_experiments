@@ -637,49 +637,47 @@ class TestRegionSignatureCacher:
         )
         assert isinstance(cacher.gene_ids, tuple)
 
-    def test_load_model_raises_not_implemented(self, three_genes):
-        """load_model always raises NotImplementedError (checkpoint stub)."""
-        cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
-            gene_ids=three_genes,
-        )
-        with pytest.raises(NotImplementedError):
-            cacher.load_model("/some/path/best.pt")
+    def test_load_model_missing_checkpoint_raises(self, three_genes):
+        """load_model on a missing checkpoint path raises FileNotFoundError.
 
-    def test_not_implemented_message_mentions_manifest(self, three_genes):
-        """NotImplementedError message mentions MANIFEST.md."""
+        The seam is now a REAL strict-load (02-02): there is no NotImplementedError
+        stub. A nonexistent path fails fast (no GPU/checkpoint needed, so this
+        stays in the pure suite). Real strict-load + forward are covered by the
+        gpu-marked test_model_load.py smoke (Hard Rule 1: not mocked).
+        """
         cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
+            model_variant="multidcp_chemoe",
             gene_ids=three_genes,
         )
-        with pytest.raises(NotImplementedError, match="MANIFEST"):
-            cacher.load_model("/some/checkpoint.pt")
+        with pytest.raises(FileNotFoundError, match="checkpoint not found"):
+            cacher.load_model("/some/path/does_not_exist_best.pt")
 
-    def test_not_implemented_message_mentions_spatial_decisions(self, three_genes):
-        """NotImplementedError message mentions 09_spatial_decisions.md."""
-        cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
-            gene_ids=three_genes,
-        )
-        with pytest.raises(NotImplementedError, match="09_spatial_decisions"):
-            cacher.load_model("/some/checkpoint.pt")
+    def test_load_model_does_not_reference_row18_kpgt(self):
+        """The wired backbone is row-17 only; row-18 chemoe_kpgt is NOT wired."""
+        import src.spatial.region_signature as rs
 
-    def test_call_model_raises_not_implemented(self, three_genes):
-        """_call_model raises NotImplementedError (model inference stub)."""
+        src = open(rs.__file__).read()
+        assert "chemoe_kpgt" not in src, (
+            "S-B descoped (D-04 amendment): the collapsed row-18 chemoe_kpgt "
+            "checkpoint must not be referenced as a wired backbone."
+        )
+
+    def test_call_model_before_load_raises(self, three_genes):
+        """_call_model before load_model raises RuntimeError (model not loaded)."""
         cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
+            model_variant="multidcp_chemoe",
             gene_ids=three_genes,
         )
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="model not loaded"):
             cacher._call_model("CCO", np.zeros(len(three_genes), dtype=np.float32))
 
-    def test_run_raises_not_implemented(self, three_genes):
-        """run() propagates NotImplementedError from _call_model."""
+    def test_run_before_load_raises(self, three_genes):
+        """run() before load_model raises RuntimeError (model not loaded)."""
         cacher = RegionSignatureCacher(
-            model_variant="multidcp_pdg",
+            model_variant="multidcp_chemoe",
             gene_ids=three_genes,
         )
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="model not loaded"):
             cacher.run(
                 pert_ids=["drug_A"],
                 smiles_map={"drug_A": "CCO"},
