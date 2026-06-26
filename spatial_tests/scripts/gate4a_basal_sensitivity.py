@@ -60,7 +60,7 @@ import yaml  # noqa: E402
 ROOT = _REPO_ROOT
 CONFIG_PATH = ROOT / "configs" / "liver_p2.yaml"
 MDCP_SRC = "/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src"
-SMOKE_CKPT = "/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model_linearenc_smoke.pt"
+SMOKE_CKPT = os.environ.get("GATE4A_CKPT", "/raid/home/joshua/projects/MultiDCP_CheMoE_pdg/src/best_model_linearenc_smoke.pt")
 
 
 def _pearson(a, b) -> float:

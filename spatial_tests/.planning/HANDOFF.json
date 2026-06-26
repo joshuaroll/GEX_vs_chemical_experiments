@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-26T04:38:25Z",
+  "phase": "post-02",
+  "phase_name": "core-feature-comparison (latent pivot)",
+  "phase_dir": ".planning/phases/02-multidcp-wiring-tox-head",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "F4 verdict: 10-epoch linear-encoder retrain + Gate 4a — identical FAIL (0.999987), reframe; spatial predicted-region arm CLOSED negative", "status": "done"},
+    {"id": 2, "name": "Spatial story-EDA gate chain (liver 2.7x / kidney 15.6x / heart homogeneous) + canonical squidpy EDA", "status": "done"},
+    {"id": 3, "name": "Three-way comparison MEASURED expression (per organ): structure best, expr at chance, no +lift — superseded by latents", "status": "done"},
+    {"id": 4, "name": "Latent pivot: extract_multidcp_latent.py (gating_network hook, validated 0/0) + structure_encoders.py registry (chemberta/ecfp4/unimol_v1/v2)", "status": "done"},
+    {"id": 5, "name": "latent_three_way.py per-organ comparison run (chemberta)", "status": "in_progress", "progress": "launched on GPU3 at handoff; results -> results/tables/P1_latent_three_way_chemberta.md"}
+  ],
+  "remaining_tasks": [
+    {"id": 6, "name": "Review chemberta latent per-organ numbers (structure/expression/both/+lift)", "status": "not_started"},
+    {"id": 7, "name": "Encoder sweep: pip install unimol_tools; run --encoder unimol_v1, unimol_v2, ecfp4", "status": "not_started"},
+    {"id": 8, "name": "Unblock brain: CID->structure resolver + MedDRA SOC file for SIDER label", "status": "not_started"},
+    {"id": 9, "name": "Cross-species (rodent->human) translatability (scaffolded)", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Brain three-way cannot run: SIDER is PubChem-CID-keyed with no SMILES/InChIKey and no MedDRA SOC column on disk; LINCS/labels share no identifier", "type": "external", "workaround": "add a CID->InChIKey resolver (pubchempy) and a MedDRA SOC hierarchy file"},
+    {"description": "UniMol v1/v2 encoders registered but unimol_tools not installed", "type": "technical", "workaround": "pip install unimol_tools (also needs 3D conformers)"}
+  ],
+  "human_actions_pending": [
+    {"action": "Decide whether 'expression latent ~= structure' is the reported finding or pivot the expression latent to a post-expert representation", "context": "global_features per-drug signal is only the 128-d drug block (validated std 1.8e-8 on cell/dose) — expression arm == MultiDCP drug encoder", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Both arms use LATENT representations (structure=molecular-encoder latent, expression=MultiDCP global_features), not raw features or predicted output", "rationale": "user design directive", "phase": "post-02"},
+    {"decision": "Tap MultiDCP latent via forward-pre-hook on model.gating_network", "rationale": "captures global_features exactly without editing the frozen model", "phase": "post-02"},
+    {"decision": "Use predicted latent (from SMILES) -> no measured-LINCS join needed -> larger drug sets", "rationale": "predicted available where measured isn't; the project's premise", "phase": "post-02"},
+    {"decision": "Do NOT run the full ~8h F4 retrain", "rationale": "Gate 4a identical FAIL at 8 and 10 epochs; objective won't produce zonal shape", "phase": "02"}
+  ],
+  "uncommitted_files": [
+    "scripts/extract_multidcp_latent.py", "scripts/latent_three_way.py",
+    "src/spatial/structure_encoders.py", "scripts/three_way_comparison.py",
+    "scripts/three_way_robustness.py", "scripts/run_spatial_eda.py", "scripts/spatial_story_eda.py",
+    "scripts/gate4a_basal_sensitivity.py", "results/tables/P1_three_way_comparison.{md,csv}",
+    "results/tables/P1_three_way_robustness.{md,csv}", "results/tables/P1_spatial_story_{liver,kidney}.md",
+    "results/tables/P1_spatial_eda_heart.md", "results/tables/P2_gate4a_10ep.md", ".planning/STATE.md"
+  ],
+  "next_action": "cat results/tables/P1_latent_three_way_chemberta.md (or re-run scripts/latent_three_way.py --encoder chemberta --gpu <free> if the run died; global_features cache makes it fast), then start the encoder sweep",
+  "context_notes": "VALIDATED CAVEAT: MultiDCP global_features' per-drug signal is the 128-d drug block only (cell_hidden + dose constant across drugs, std 1.8e-8), so the expression arm is effectively MultiDCP's drug encoder; a near-zero +expression lift means the external encoder and MultiDCP encoder carry the same toxicity info — that IS the finding, report it. argparse gotcha: latent_three_way.py resets sys.argv after parse so the lazily-imported cache_region_de module-level argparse doesn't choke on --encoder; gate4a uses env GATE4A_CKPT for the same reason. Full human-readable handoff: /raid/home/joshua/claude_memory/downstream_2026/notes/2026-06-26-RESUME.md"
+}
