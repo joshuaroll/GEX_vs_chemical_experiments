@@ -71,14 +71,25 @@ class MultiDCPLatentExtractor:
             basal_np, dtype=self.torch.float64, device=self.device).unsqueeze(0)
 
     def extract(self, smiles):
+        return self.extract_full(smiles)[0]  # [306] global_features (back-compat)
+
+    def extract_full(self, smiles):
+        """One forward -> (global_features[306], treated_pred[N_PDG]).
+
+        The gating-network hook captures global_features (its input); the model's
+        return value is the absolute predicted treated GEX over N_PDG genes. Both
+        come off the SAME forward, so the latent and the gene-output are read from
+        one identical computation in one identical basal.
+        """
         t = self.torch
         drug = self._smi2feat([smiles], self.device)
         mask = self._mask(drug, self.device)
         dose = t.tensor([[1.0, 0.0]], dtype=t.float64, device=self.device)
         with t.no_grad():
-            self.model(input_cell_gex=self._basal, input_drug=drug, input_gene=self._gene_t,
-                       mask=mask, input_pert_idose=dose, job_id="perturbed", epoch=0)
-        return self._gf["v"][0].copy()  # [306]
+            out = self.model(input_cell_gex=self._basal, input_drug=drug, input_gene=self._gene_t,
+                             mask=mask, input_pert_idose=dose, job_id="perturbed", epoch=0)
+        pred = out[0] if isinstance(out, (tuple, list)) else out  # (pred, cell_hidden)
+        return self._gf["v"][0].copy(), pred.squeeze(0).float().cpu().numpy()  # [306], [N_PDG]
 
 
 def load_reference_basal(ext):
