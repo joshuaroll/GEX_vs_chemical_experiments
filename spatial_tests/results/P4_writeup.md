@@ -135,6 +135,37 @@ Output, latent, measured; six probes; nine encoders; two organs. The result does
 
 ---
 
+## 6b. Follow-up: is it the combiner, or the signal? (fusion + tox-tuning)
+
+A fair objection: a negative from linear concatenation is the weakest test, and predicted DE may be
+redundant with structure. We ran it down.
+
+**Predicted DE is largely structure re-encoded.** A linear map from structure recovers 29-53% of
+predicted DE, but has *negative* R^2 to *measured* DE. So the predicted-DE arm was near-circular
+(SMILES -> DE, another function of SMILES); only measured DE tests the omics hypothesis. Tables:
+`P4_fusion_diagnostics.md`, `P4_omics_arm.md`.
+
+**On measured DE, fusion has nothing to extract.** The measured-omics arm is at chance on its own
+across 3 representations (raw / PCA30 / supervised top-100) x 3 models (logistic / RF / MLP; best
+kidney 0.557). No fusion beats structure: late fusion, a learned stacker, and a nonlinear joint
+concat-MLP all tie or trail structure. The oracle upper bound looked high (0.90) but is a mirage:
+oracle(structure + *permuted/random* omics) is essentially identical (0.89-0.90), so the apparent
+complementarity is label-selection inflation, not signal. The trustworthy number is the learned
+stacker, which ties structure.
+
+**Tox-tuning the signature (conditions E/F) makes it worse.** Fine-tuning the engine end-to-end
+toward the tox label (tuned_E), and with an anchor to the frozen biological prediction (tuned_F),
+underperforms both structure and the frozen signature on both organs and both splits
+(drug-disjoint: liver 0.559 / 0.574 vs structure 0.712; kidney 0.532 / 0.545 vs 0.652). Fine-tuning
+a 978-gene bottleneck on ~340 binary labels overfits and distorts the signature; the anchor partially
+protects it (F > E everywhere), which confirms the mechanism. Table: `P4_tox_tuned.md`.
+
+Bottom line of the follow-up: the bottleneck is the omics *signal*, not the combiner. Every modeling
+lever we have (frozen, tuned, fused, nine encoders, six probes, better representations) leaves
+structure as the ceiling. The one untested lever is *tox-informative measured omics in the right cell
+context*, which is a data problem (proximal-tubule / primary-hepatocyte perturbation data barely
+exists at scale), not a modeling one.
+
 ## 7. Limitations
 
 - **Small samples, wide intervals.** n = 492 (liver) and 317 (kidney); the paired-lift CIs are on
@@ -178,3 +209,11 @@ ways the field overstates expression's value:
 Framed positively for a paper: *when the split is honest and the structure baseline is strong,
 a faithful transcriptomic response model does not add toxicity signal over chemical structure for
 liver or kidney.* That is a clean negative with a reproducible bracket behind it.
+
+The modeling side of this question is now exhausted: frozen predicted DE, nine structure encoders,
+six extraction probes, measured DE, four fusion methods, and tox-tuned signatures (conditions E/F)
+all leave structure as the ceiling, and tox-tuning actively hurts. The one lever we have not been
+able to test is *tox-informative measured omics in the right cell context* (proximal tubule for
+kidney, primary hepatocyte for liver). That is a data limitation, not a method choice, and it is the
+honest boundary of this negative: we show the gene-expression channel as currently obtainable does
+not help, not that no conceivable omics assay could.
