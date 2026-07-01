@@ -37,3 +37,13 @@ Measured-DE overlap set per organ. structure = ChemBERTa / ECFP4. REDUNDANCY = 5
 - **stacker > structure** => a better fusion already helps; report it.
 - err_corr near 1 = the two models fail on the same drugs (no complementarity); near 0 = independent failures (fusable).
 
+## CORRECTION (see P4_omics_arm.md) — the high ORACLE here is INFLATION, not signal
+The oracle (0.86-0.90) looked like huge complementary signal. It is not. `P4_omics_arm.md`'s
+permutation sanity shows oracle(structure + **PERMUTED** omics) = 0.901 (liver) / 0.894 (kidney),
+essentially equal to oracle(structure + real omics). A per-drug label-informed selector reaches
+~0.90 with *any* independent second stream, even random noise. The real marginal complementarity is
+~+0.01-0.03, within noise. Combined with omics-alone staying at chance across 9 rep x model configs
+and no fusion (late / stacker / nonlinear concat-MLP) beating structure, the honest conclusion is:
+**no extractable complementary signal on this measured-omics data** — the near-zero `stacker` vs
+`structure` result, not the oracle, is the trustworthy number.
+
