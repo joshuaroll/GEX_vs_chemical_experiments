@@ -87,66 +87,73 @@ def fig_engine():
 
 # ============================================================ Figure 2: framework
 def fig_framework():
-    fig, ax = plt.subplots(figsize=(13, 9))
+    fig, ax = plt.subplots(figsize=(13.5, 9.5))
     ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis("off")
-    ax.text(50, 97, "Experimental framework — structure vs expression vs both",
+    ax.text(50, 97.5, "Experimental framework — structure vs expression vs both",
             ha="center", fontsize=13, fontweight="bold")
 
-    # SMILES source
-    box(ax, 40, 87, 20, 6, "drug  (SMILES)", BLUE, 10, bold=True)
+    # ---- training role of measured LINCS profiles: they TRAIN the engine ----
+    box(ax, 2, 70, 22, 9, "LINCS measured profiles\n(treated x1, basal x2)", GREEN, 8.5)
+    ax.text(13, 66.5, "role = TRAIN the engine\n(self-supervised, no tox labels)",
+            ha="center", fontsize=7.5, color="#2e7d32", style="italic")
 
-    # two SMILES-derived arms
-    box(ax, 8, 72, 30, 8, "STRUCTURE encoder\nChemBERTa / ECFP4 / UniMol / MACCS / …\n→ structure vec",
+    # ---- SMILES -> two deployable, SMILES-derived arms ----
+    box(ax, 40, 89, 20, 6, "drug  (SMILES)", BLUE, 10, bold=True)
+    box(ax, 6, 78, 30, 7, "STRUCTURE encoder\nChemBERTa / ECFP4 / UniMol / …", BLUE, 8.5)
+    box(ax, 44, 78, 30, 9, "MultiDCP engine\n(frozen or tox-tuned)\nlatent layer  →  (or predicted DE)",
         BLUE, 8.5)
-    box(ax, 44, 72, 26, 8, "MultiDCP engine\n(frozen  or  tox-tuned)\n→ predicted DE [978]", BLUE, 8.5)
-    arrow(ax, 45, 87, 23, 80)
-    arrow(ax, 53, 87, 57, 80)
+    arrow(ax, 45, 89, 21, 85)
+    arrow(ax, 53, 89, 58, 87)
+    arrow(ax, 24, 74.5, 44, 82, color="#2e7d32", ls="--")  # measured profiles -> train engine
+    ax.text(33, 79.5, "trains", fontsize=7.5, color="#2e7d32", rotation=18)
 
-    # measured DE — independent biology, enters from the side
-    box(ax, 74, 72, 24, 8, "LINCS measured profiles\nmean(x1 − x2)\n→ measured DE [978]", GREEN, 8.5)
-    ax.text(86, 82.5, "independent biology\n(not from SMILES)", ha="center", fontsize=7.5,
-            color="#2e7d32", style="italic")
+    # ---- deployable arms ----
+    box(ax, 8, 60, 26, 6, "arm 1: structure", BLUE, 9, bold=True)
+    box(ax, 44, 60, 30, 6, "arm 2: expression = engine LATENT", BLUE, 8.5, bold=True)
+    box(ax, 44, 51.5, 30, 5.5, "arm 3: both = structure ⊕ latent", PURPLE, 8.5, bold=True)
+    arrow(ax, 20, 78, 20, 66)              # structure -> arm1
+    arrow(ax, 59, 78, 59, 66)              # engine latent -> arm2
+    arrow(ax, 22, 78, 50, 57)              # structure -> arm3
+    arrow(ax, 59, 66, 62, 57)             # arm2 feeds into arm3 (both)
 
-    # three arms
-    box(ax, 6, 55, 24, 7, "arm 1: structure", BLUE, 9, bold=True)
-    box(ax, 38, 55, 24, 7, "arm 2: expression\n(predicted OR measured DE)", GREEN, 8.5, bold=True)
-    box(ax, 70, 55, 26, 7, "arm 3: both = concat(structure, DE)", PURPLE, 8.5, bold=True)
-    arrow(ax, 20, 72, 18, 62)                       # structure -> arm1
-    arrow(ax, 57, 72, 50, 62)                       # pred DE -> arm2
-    arrow(ax, 82, 72, 52, 62, color="#2e7d32")      # meas DE -> arm2
-    arrow(ax, 23, 72, 78, 62, ls="--")              # structure -> arm3
-    arrow(ax, 60, 72, 84, 62, ls="--")              # pred DE -> arm3
-    arrow(ax, 84, 72, 88, 62, ls="--", color="#2e7d32")  # meas DE -> arm3
+    # ---- control branch: measured DE fed DIRECTLY (upper bound, not deployable) ----
+    box(ax, 77, 60, 21, 8, "measured DE  [978]\n(mean x1 − x2)", GREEN, 8)
+    arrow(ax, 24, 72, 82, 68, color="#2e7d32", ls=":")   # profiles -> measured DE feature
+    ax.text(88, 56.5, "CONTROL / upper bound (cond. D):\ndoes the MODALITY carry signal?\n"
+            "needs LINCS — NOT deployable", ha="center", fontsize=7, color="#2e7d32", style="italic")
 
-    # combiner / head
-    box(ax, 30, 40, 40, 8,
+    # ---- shared head ----
+    box(ax, 28, 38, 44, 8,
         "shared small HEAD\nlogreg / RandomForest / MLP\n(fusion: concat · late · stacker · MLP)",
         ORANGE, 9)
-    for x in (18, 50, 83):
-        arrow(ax, x, 55, 50, 48)
+    arrow(ax, 20, 60, 40, 46)              # arm1 -> head
+    arrow(ax, 59, 51.5, 52, 46)            # arm3 -> head
+    arrow(ax, 62, 60, 58, 46)             # arm2 -> head
+    arrow(ax, 82, 60, 66, 46, color="#2e7d32", ls=":")   # measured-DE control -> head
 
-    # targets
-    box(ax, 20, 26, 26, 7, "binary DILI / DIKI\n(is it toxic?)", GREY, 9, bold=True)
-    box(ax, 54, 26, 26, 7, "DILIrank SeverityClass 0–8\n(how bad?)", GREY, 9, bold=True)
-    arrow(ax, 45, 40, 33, 33)
-    arrow(ax, 55, 40, 67, 33)
+    # ---- targets ----
+    box(ax, 22, 26, 26, 6, "binary DILI / DIKI\n(is it toxic?)", GREY, 9, bold=True)
+    box(ax, 54, 26, 26, 6, "DILIrank Severity 0–8\n(how bad?)", GREY, 9, bold=True)
+    arrow(ax, 46, 38, 35, 32)
+    arrow(ax, 54, 38, 65, 32)
 
-    # verdict banner
-    ax.add_patch(FancyBboxPatch((6, 12), 88, 9, boxstyle="round,pad=0.2,rounding_size=0.3",
+    # ---- verdict banner ----
+    ax.add_patch(FancyBboxPatch((5, 11.5), 90, 9.5, boxstyle="round,pad=0.2,rounding_size=0.3",
                                 fc="#fdeaea", ec="#c0392b", lw=1.5))
-    ax.text(50, 16.5, "RESULT: structure is the ceiling on every target. blue arms are functions of "
-            "SMILES (predicted DE ≈ re-encoded structure);\ngreen measured DE is at/below chance. "
-            "only green (measured biology) or a dose-response head can add information.",
-            ha="center", fontsize=8.5, color="#7b241c")
+    ax.text(50, 16.2, "RESULT: structure is the ceiling on every target. The engine latent AND its DE "
+            "output are both functions of SMILES (blue) → structure-ceilinged.\nThe measured-DE "
+            "CONTROL (green) is at/below chance → the modality itself carries no extractable tox "
+            "signal here. Only genuinely independent biology (measured DE in the\nright cell context) "
+            "or a separate readout (dose-response head) could add information.",
+            ha="center", fontsize=8.3, color="#7b241c")
 
-    # eval + legend
     ax.text(50, 7, "eval: drug-disjoint & scaffold-disjoint CV · 5-fold × ≥3 seeds · paired bootstrap CI",
             ha="center", fontsize=8, color="#444")
-    ax.add_patch(FancyBboxPatch((6, 0.5), 30, 4.5, boxstyle="round,pad=0.15", fc="white", ec="#999"))
-    ax.add_patch(plt.Rectangle((8, 1.8), 2, 1.8, fc=BLUE, ec=EDGE))
-    ax.text(11, 2.7, "function of SMILES", fontsize=7.5, va="center")
-    ax.add_patch(plt.Rectangle((24, 1.8), 2, 1.8, fc=GREEN, ec=EDGE))
-    ax.text(27, 2.7, "independent biology", fontsize=7.5, va="center")
+    ax.add_patch(FancyBboxPatch((5, 0.3), 44, 4.6, boxstyle="round,pad=0.15", fc="white", ec="#999"))
+    ax.add_patch(plt.Rectangle((7, 1.7), 2, 1.8, fc=BLUE, ec=EDGE))
+    ax.text(10, 2.6, "function of SMILES (deployable arms)", fontsize=7.3, va="center")
+    ax.add_patch(plt.Rectangle((32, 1.7), 2, 1.8, fc=GREEN, ec=EDGE))
+    ax.text(35, 2.6, "measured biology (control)", fontsize=7.3, va="center")
 
     fig.savefig(OUT / "fig_framework.png", dpi=150, bbox_inches="tight"); plt.close(fig)
 
