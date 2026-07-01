@@ -158,7 +158,52 @@ def fig_framework():
     fig.savefig(OUT / "fig_framework.png", dpi=150, bbox_inches="tight"); plt.close(fig)
 
 
+# ============================================================ Figure 3: stripped two-tier
+def fig_framework_simple():
+    fig, ax = plt.subplots(figsize=(11, 8))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis("off")
+    ax.text(50, 96.5, "The one-picture takeaway: two information tiers",
+            ha="center", fontsize=14, fontweight="bold")
+
+    # Tier 1 — everything from SMILES
+    ax.add_patch(FancyBboxPatch((6, 66), 88, 20, boxstyle="round,pad=0.3,rounding_size=0.4",
+                                fc=BLUE, ec="#2c6fbb", lw=2))
+    ax.text(50, 83.5, "TIER 1 — everything derived from SMILES (the molecular graph)",
+            ha="center", fontsize=10.5, fontweight="bold", color="#1a4a80")
+    box(ax, 11, 69.5, 34, 8, "structure encoder\nChemBERTa / ECFP4 / UniMol / …", "white", 9)
+    box(ax, 55, 69.5, 34, 8, "MultiDCP engine\nlatent  ·  predicted DE  ·  tox-tuned", "white", 9)
+    ax.text(50, 67.6, "all structure-ceilinged — combining them adds no lift over structure alone",
+            ha="center", fontsize=8, style="italic", color="#1a4a80")
+
+    # Tier 2 — independent biology
+    ax.add_patch(FancyBboxPatch((6, 42), 88, 18, boxstyle="round,pad=0.3,rounding_size=0.4",
+                                fc=GREEN, ec="#2e7d32", lw=2))
+    ax.text(50, 57.5, "TIER 2 — independent measured biology (NOT a function of SMILES)",
+            ha="center", fontsize=10.5, fontweight="bold", color="#1e5a2a")
+    box(ax, 11, 45.5, 34, 7.5, "measured DE\nin the right cell context", "white", 9)
+    box(ax, 55, 45.5, 34, 7.5, "dose-response readout\n(potency / E-Hill)", "white", 9)
+    ax.text(50, 43.6, "the only inputs that could add information — largely untested / data-limited",
+            ha="center", fontsize=8, style="italic", color="#1e5a2a")
+
+    # head + target
+    box(ax, 33, 30, 34, 6.5, "shared classifier", ORANGE, 9.5, bold=True)
+    arrow(ax, 40, 66, 45, 36.5, color="#2c6fbb", lw=2)
+    arrow(ax, 60, 66, 55, 36.5, color="#2c6fbb", lw=2)
+    arrow(ax, 40, 42, 46, 36.5, color="#2e7d32", lw=2, ls="--")
+    arrow(ax, 60, 42, 54, 36.5, color="#2e7d32", lw=2, ls="--")
+    box(ax, 30, 20, 40, 6.5, "toxicity  —  binary  /  severity 0–8", GREY, 9.5, bold=True)
+    arrow(ax, 50, 30, 50, 26.5)
+
+    ax.add_patch(FancyBboxPatch((6, 6), 88, 9.5, boxstyle="round,pad=0.25,rounding_size=0.4",
+                                fc="#fdeaea", ec="#c0392b", lw=1.6))
+    ax.text(50, 10.7, "Tier-1 alone → structure is the ceiling.  Adding Tier-1 expression to structure "
+            "→ no lift (blue can't beat blue).\nTier-2 as tested (LINCS cancer-line measured DE) → at "
+            "chance.  Open question lives entirely in Tier-2: right cell context or a dose-response readout.",
+            ha="center", fontsize=8.6, color="#7b241c")
+    fig.savefig(OUT / "fig_framework_simple.png", dpi=150, bbox_inches="tight"); plt.close(fig)
+
+
 if __name__ == "__main__":
-    fig_engine(); fig_framework()
-    for p in ("fig_engine.png", "fig_framework.png"):
+    fig_engine(); fig_framework(); fig_framework_simple()
+    for p in ("fig_engine.png", "fig_framework.png", "fig_framework_simple.png"):
         print("wrote", OUT / p)
