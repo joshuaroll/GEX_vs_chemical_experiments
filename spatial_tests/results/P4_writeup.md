@@ -211,8 +211,13 @@ a faithful transcriptomic response model does not add toxicity signal over chemi
 liver or kidney.* That is a clean negative with a reproducible bracket behind it.
 
 The modeling side of this question is now exhausted: frozen predicted DE, nine structure encoders,
-six extraction probes, measured DE, four fusion methods, and tox-tuned signatures (conditions E/F)
-all leave structure as the ceiling, and tox-tuning actively hurts. The one lever we have not been
+six extraction probes, measured DE, four fusion methods, tox-tuned signatures (conditions E/F), and
+a switch of target from binary to ordinal DILIrank severity (SeverityClass 0-8) all leave structure
+as the ceiling, and tox-tuning actively hurts. On the ordinal target the best model is a random
+forest on structure (quadratic-weighted kappa 0.24, Spearman 0.33 on the full 0-8 cohort); predicted
+DE trails it and measured DE is at or below chance (negative kappa). Grading "how bad" among
+toxicants (positives-only) is exactly where omics had its best theoretical shot and where measured
+expression goes negative. Table: `P4_severity_class.md`. The one lever we have not been
 able to test is *tox-informative measured omics in the right cell context* (proximal tubule for
 kidney, primary hepatocyte for liver). That is a data limitation, not a method choice, and it is the
 honest boundary of this negative: we show the gene-expression channel as currently obtainable does
