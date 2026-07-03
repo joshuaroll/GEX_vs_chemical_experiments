@@ -120,3 +120,11 @@ These items are **referenced** from the source-of-truth doc but explicitly exclu
 | Date | Phase | Change |
 |---|---|---|
 | 2026-05-05 | scaffolding | Initial template — source code SHAs pinned, all data/checkpoint rows pending |
+
+### dataset: wangli_multidcp_finetune (PASS_WITH_WARNINGS)
+- file: `data/processed/wangli_multidcp_finetune.npz`
+- format: npz
+- source: derived: wangli_profiles.csv (Phase1) + adjusted_ccle_tcga_ad_tpm_log2.csv basal + wangli_6000_landmark.npz measured
+- sha256: 621f172af44348a52b6c96c98a09acaff4366170a8f973d3aa99d453a0cdd547
+- shape/rows: None
+- verified: 2026-07-01T16:51:02

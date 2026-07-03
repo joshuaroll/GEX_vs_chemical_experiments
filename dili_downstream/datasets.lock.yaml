@@ -1,0 +1,16 @@
+version: 1
+datasets:
+  wangli_multidcp_finetune:
+    description: ''
+    source: 'derived: wangli_profiles.csv (Phase1) + adjusted_ccle_tcga_ad_tpm_log2.csv
+      basal + wangli_6000_landmark.npz measured'
+    format: npz
+    requested: '2026-07-01T16:51:00'
+    status: verified
+    expect:
+      shape:
+      - 5141
+      - 978
+    last_verified: '2026-07-01T16:51:02'
+    fingerprint:
+      sha256: 621f172af44348a52b6c96c98a09acaff4366170a8f973d3aa99d453a0cdd547
