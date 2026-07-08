@@ -120,6 +120,7 @@ These items are **referenced** from the source-of-truth doc but explicitly exclu
 | Date | Phase | Change |
 |---|---|---|
 | 2026-05-05 | scaffolding | Initial template — source code SHAs pinned, all data/checkpoint rows pending |
+| 2026-07-08 | tox side-thread | Honest Li/Tong 8-layer DNN re-evaluation. New `scripts/wangli_dnn_honest.py` (reuses tox_finetune_multidcp.py's split/inner-val/scoring/permute machinery verbatim; only the classifier changes to the 8-layer ELU DNN) + `scripts/plot_wangli_dnn_honest.py`. Outputs: `results/tables/P_wangli_dnn_honest_full.csv` (+ `_per_resample.csv`), `results/tables/P_wangli_dnn_honest_full_permute.csv` (+ `_per_resample.csv`), write-up `results/tables/P_wangli_dnn_honest.md`, figure `results/figures/P_wangli_dnn_honest_decomposition.png` (+ `.pdf`). Headline: the 0.798 collapses to 0.508 (drug-disjoint, per-drug) under honest evaluation. Uncommitted (working tree). |
 
 ### dataset: wangli_multidcp_finetune (PASS_WITH_WARNINGS)
 - file: `data/processed/wangli_multidcp_finetune.npz`

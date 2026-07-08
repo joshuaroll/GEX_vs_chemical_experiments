@@ -1,0 +1,2 @@
+config,split,score,selection,feature,n_resamples,auroc_mean,auroc_sd,profile_auroc_mean,profile_auroc_sd,drug_auroc_mean,drug_auroc_sd,permute
+C0,profile,profile,test,measured,3,0.780840974837618,0.003553754707689226,0.780840974837618,0.003553754707689226,0.6134825556956705,0.011632350837967272,False

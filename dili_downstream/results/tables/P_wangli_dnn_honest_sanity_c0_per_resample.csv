@@ -1,0 +1,4 @@
+split,selection,feature,resample,profile_auroc,drug_auroc
+profile,test,measured,0,0.7858625347961357,0.6287831021437579
+profile,test,measured,1,0.7785082691992795,0.6005989911727617
+profile,test,measured,2,0.7781521205174389,0.6110655737704918

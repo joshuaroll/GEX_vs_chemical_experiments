@@ -73,6 +73,9 @@ venv/
 
 # Allow key publication figures (explicitly tracked)
 !multihead_dili/results/figures/v2_leakage_decomposition.png
+!dili_downstream/results/figures/fig1_inflation_decomposition.png
+!dili_downstream/results/figures/fig2_honest_head_to_head.png
+!dili_downstream/results/figures/fig3_leaky_vs_honest.png
 
 # DILIst raw downloads (large, license-restricted distribution)
 */data/raw/DILIst/*.xlsx
